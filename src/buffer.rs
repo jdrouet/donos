@@ -4,10 +4,38 @@ pub enum ReaderError {
     TooManyJumps(usize),
 }
 
+impl From<ReaderError> for std::io::Error {
+    fn from(value: ReaderError) -> Self {
+        match value {
+            ReaderError::EndOfBuffer => {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, "reading out of buffer")
+            }
+            ReaderError::TooManyJumps(size) => std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("too many jumps when reading: {size}"),
+            ),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum WriterError {
     EndOfBuffer,
     SingleLabelLengh,
+}
+
+impl From<WriterError> for std::io::Error {
+    fn from(value: WriterError) -> Self {
+        match value {
+            WriterError::EndOfBuffer => {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, "writing out of buffer")
+            }
+            WriterError::SingleLabelLengh => std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "single label too long when writing",
+            ),
+        }
+    }
 }
 
 pub struct BytePacketBuffer {
@@ -66,7 +94,7 @@ impl BytePacketBuffer {
     }
 
     /// Get a range of bytes
-    fn get_range(&mut self, start: usize, len: usize) -> Result<&[u8], ReaderError> {
+    pub fn get_range(&mut self, start: usize, len: usize) -> Result<&[u8], ReaderError> {
         if start + len >= 512 {
             return Err(ReaderError::EndOfBuffer);
         }
