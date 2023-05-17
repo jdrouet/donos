@@ -1,8 +1,8 @@
 use tokio::net::UdpSocket;
 
 mod buffer;
-mod lookup;
 mod packet;
+mod service;
 
 fn init_logs() {
     use tracing_subscriber::layer::SubscriberExt;
@@ -18,7 +18,7 @@ fn init_logs() {
 }
 
 async fn handle_query(
-    lookup_service: &lookup::LookupService,
+    lookup_service: &service::lookup::LookupService,
     socket: &UdpSocket,
 ) -> std::io::Result<()> {
     // With a socket ready, we can go ahead and read a packet. This will
@@ -30,6 +30,7 @@ async fn handle_query(
     // We're not interested in the length, but we need to keep track of the
     // source in order to send our reply later on.
     let (_, src) = socket.recv_from(&mut req_buffer.buf).await?;
+    tracing::debug!("received from {:?}", src.ip());
 
     // Next, `DnsPacket::from_buffer` is used to parse the raw bytes into
     // a `DnsPacket`.
@@ -99,7 +100,7 @@ async fn main() -> std::io::Result<()> {
     init_logs();
 
     tracing::debug!("starting server");
-    let lookup_service = lookup::LookupService::new().await?;
+    let lookup_service = service::lookup::LookupService::new().await?;
     let socket = UdpSocket::bind("0.0.0.0:2053").await?;
     tracing::info!("started server");
     loop {
