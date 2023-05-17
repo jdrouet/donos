@@ -51,24 +51,28 @@ async fn handle_query(
         // fail, in which case the `SERVFAIL` response code is set to indicate
         // as much to the client. If rather everything goes as planned, the
         // question and response records as copied into our response packet.
-        if let Ok(result) = lookup_service.lookup(&question.name, question.qtype).await {
-            packet.questions.push(question);
-            packet.header.response_code = result.header.response_code;
+        match lookup_service.lookup(&question.name, question.qtype).await {
+            Ok(result) => {
+                packet.questions.push(question);
+                packet.header.response_code = result.header.response_code;
 
-            for rec in result.answers {
-                tracing::debug!("answer: {rec:?}");
-                packet.answers.push(rec);
+                for rec in result.answers {
+                    tracing::debug!("answer: {rec:?}");
+                    packet.answers.push(rec);
+                }
+                for rec in result.authorities {
+                    tracing::debug!("authority: {rec:?}");
+                    packet.authorities.push(rec);
+                }
+                for rec in result.resources {
+                    tracing::debug!("resource: {rec:?}");
+                    packet.resources.push(rec);
+                }
             }
-            for rec in result.authorities {
-                tracing::debug!("authority: {rec:?}");
-                packet.authorities.push(rec);
+            Err(error) => {
+                tracing::error!("unable to lookup question: {error:?}");
+                packet.header.response_code = packet::ResponseCode::ServerFailure;
             }
-            for rec in result.resources {
-                tracing::debug!("resource: {rec:?}");
-                packet.resources.push(rec);
-            }
-        } else {
-            packet.header.response_code = packet::ResponseCode::ServerFailure;
         }
     }
     // Being mindful of how unreliable input data from arbitrary senders can be, we
