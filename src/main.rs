@@ -1,10 +1,21 @@
-use std::eprintln;
-
 use tokio::net::UdpSocket;
 
 mod buffer;
 mod lookup;
 mod packet;
+
+fn init_logs() {
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+    use tracing_subscriber::{fmt, registry, EnvFilter};
+
+    let _ = registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+            format!("{}=debug,tower_http=debug", env!("CARGO_PKG_NAME")).into()
+        }))
+        .with(fmt::layer().with_ansi(cfg!(debug_assertions)))
+        .try_init();
+}
 
 async fn handle_query(
     lookup_service: &lookup::LookupService,
@@ -33,7 +44,7 @@ async fn handle_query(
 
     // In the normal case, exactly one question is present
     if let Some(question) = request.questions.pop() {
-        println!("Received query: {:?}", question);
+        tracing::debug!("query: {question:?}");
 
         // Since all is set up and as expected, the query can be forwarded to the
         // target server. There's always the possibility that the query will
@@ -45,15 +56,15 @@ async fn handle_query(
             packet.header.response_code = result.header.response_code;
 
             for rec in result.answers {
-                println!("Answer: {:?}", rec);
+                tracing::debug!("answer: {rec:?}");
                 packet.answers.push(rec);
             }
             for rec in result.authorities {
-                println!("Authority: {:?}", rec);
+                tracing::debug!("authority: {rec:?}");
                 packet.authorities.push(rec);
             }
             for rec in result.resources {
-                println!("Resource: {:?}", rec);
+                tracing::debug!("resource: {rec:?}");
                 packet.resources.push(rec);
             }
         } else {
@@ -81,12 +92,16 @@ async fn handle_query(
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    init_logs();
+
+    tracing::debug!("starting server");
     let lookup_service = lookup::LookupService::new().await?;
     let socket = UdpSocket::bind("0.0.0.0:2053").await?;
+    tracing::info!("started server");
     loop {
         match handle_query(&lookup_service, &socket).await {
             Ok(_) => {}
-            Err(err) => eprintln!("an error occured: {err:?}"),
+            Err(err) => tracing::error!("an error occured: {err:?}"),
         }
     }
 }
