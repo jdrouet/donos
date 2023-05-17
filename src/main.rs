@@ -1,5 +1,8 @@
 use tokio::net::UdpSocket;
 
+mod buffer;
+mod packet;
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let sock = UdpSocket::bind("0.0.0.0:4545").await?;
