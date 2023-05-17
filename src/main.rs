@@ -3,36 +3,13 @@ use std::eprintln;
 use tokio::net::UdpSocket;
 
 mod buffer;
+mod lookup;
 mod packet;
 
-async fn lookup(qname: &str, qtype: packet::QueryType) -> std::io::Result<packet::DnsPacket> {
-    // Forward queries to Google's public DNS
-    let server = ("1.1.1.1", 53);
-
-    let socket = UdpSocket::bind(("0.0.0.0", 43210)).await?;
-
-    let mut packet = packet::DnsPacket::new();
-
-    packet.header.id = 6666;
-    packet.header.questions = 1;
-    packet.header.recursion_desired = true;
-    packet
-        .questions
-        .push(packet::DnsQuestion::new(qname.to_string(), qtype));
-
-    let mut req_buffer = buffer::BytePacketBuffer::new();
-    packet.write(&mut req_buffer)?;
-    socket
-        .send_to(&req_buffer.buf[0..req_buffer.pos], server)
-        .await?;
-
-    let mut res_buffer = buffer::BytePacketBuffer::new();
-    socket.recv_from(&mut res_buffer.buf).await?;
-
-    Ok(packet::DnsPacket::from_buffer(&mut res_buffer)?)
-}
-
-async fn handle_query(socket: &UdpSocket) -> std::io::Result<()> {
+async fn handle_query(
+    lookup_service: &lookup::LookupService,
+    socket: &UdpSocket,
+) -> std::io::Result<()> {
     // With a socket ready, we can go ahead and read a packet. This will
     // block until one is received.
     let mut req_buffer = buffer::BytePacketBuffer::new();
@@ -63,7 +40,7 @@ async fn handle_query(socket: &UdpSocket) -> std::io::Result<()> {
         // fail, in which case the `SERVFAIL` response code is set to indicate
         // as much to the client. If rather everything goes as planned, the
         // question and response records as copied into our response packet.
-        if let Ok(result) = lookup(&question.name, question.qtype).await {
+        if let Ok(result) = lookup_service.lookup(&question.name, question.qtype).await {
             packet.questions.push(question);
             packet.header.response_code = result.header.response_code;
 
@@ -104,9 +81,10 @@ async fn handle_query(socket: &UdpSocket) -> std::io::Result<()> {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    let lookup_service = lookup::LookupService::new().await?;
     let socket = UdpSocket::bind("0.0.0.0:2053").await?;
     loop {
-        match handle_query(&socket).await {
+        match handle_query(&lookup_service, &socket).await {
             Ok(_) => {}
             Err(err) => eprintln!("an error occured: {err:?}"),
         }
