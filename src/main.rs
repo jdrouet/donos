@@ -1,8 +1,13 @@
+use std::io::Result;
 use tokio::net::UdpSocket;
 
 mod buffer;
 mod packet;
 mod service;
+
+use crate::buffer::BytePacketBuffer;
+use crate::packet::{DnsPacket, ResponseCode};
+use crate::service::lookup::LookupService;
 
 fn init_logs() {
     use tracing_subscriber::layer::SubscriberExt;
@@ -17,13 +22,10 @@ fn init_logs() {
         .try_init();
 }
 
-async fn handle_query(
-    lookup_service: &service::lookup::LookupService,
-    socket: &UdpSocket,
-) -> std::io::Result<()> {
+async fn handle_query(lookup_service: &LookupService, socket: &UdpSocket) -> Result<()> {
     // With a socket ready, we can go ahead and read a packet. This will
     // block until one is received.
-    let mut req_buffer = buffer::BytePacketBuffer::new();
+    let mut req_buffer = BytePacketBuffer::new();
 
     // The `recv_from` function will write the data into the provided buffer,
     // and return the length of the data read as well as the source address.
@@ -34,10 +36,10 @@ async fn handle_query(
 
     // Next, `DnsPacket::from_buffer` is used to parse the raw bytes into
     // a `DnsPacket`.
-    let mut request = packet::DnsPacket::from_buffer(&mut req_buffer)?;
+    let mut request = DnsPacket::from_buffer(&mut req_buffer)?;
 
     // Create and initialize the response packet
-    let mut packet = packet::DnsPacket::new();
+    let mut packet = DnsPacket::new();
     packet.header.id = request.header.id;
     packet.header.recursion_desired = true;
     packet.header.recursion_available = true;
@@ -72,7 +74,7 @@ async fn handle_query(
             }
             Err(error) => {
                 tracing::error!("unable to lookup question: {error:?}");
-                packet.header.response_code = packet::ResponseCode::ServerFailure;
+                packet.header.response_code = ResponseCode::ServerFailure;
             }
         }
     }
@@ -80,11 +82,11 @@ async fn handle_query(
     // need make sure that a question is actually present. If not, we return `FORMERR`
     // to indicate that the sender made something wrong.
     else {
-        packet.header.response_code = packet::ResponseCode::FormatError;
+        packet.header.response_code = ResponseCode::FormatError;
     }
 
     // The only thing remaining is to encode our response and send it off!
-    let mut res_buffer = buffer::BytePacketBuffer::new();
+    let mut res_buffer = BytePacketBuffer::new();
     packet.write(&mut res_buffer)?;
 
     let len = res_buffer.pos();
@@ -100,7 +102,7 @@ async fn main() -> std::io::Result<()> {
     init_logs();
 
     tracing::debug!("starting server");
-    let lookup_service = service::lookup::LookupService::new().await?;
+    let lookup_service = LookupService::new().await?;
     let socket = UdpSocket::bind("0.0.0.0:2053").await?;
     tracing::info!("started server");
     loop {
