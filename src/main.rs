@@ -65,7 +65,7 @@ async fn handle_query(socket: &UdpSocket) -> std::io::Result<()> {
         // question and response records as copied into our response packet.
         if let Ok(result) = lookup(&question.name, question.qtype).await {
             packet.questions.push(question);
-            packet.header.rescode = result.header.rescode;
+            packet.header.response_code = result.header.response_code;
 
             for rec in result.answers {
                 println!("Answer: {:?}", rec);
@@ -80,14 +80,14 @@ async fn handle_query(socket: &UdpSocket) -> std::io::Result<()> {
                 packet.resources.push(rec);
             }
         } else {
-            packet.header.rescode = packet::ResultCode::SERVFAIL;
+            packet.header.response_code = packet::ResponseCode::ServerFailure;
         }
     }
     // Being mindful of how unreliable input data from arbitrary senders can be, we
     // need make sure that a question is actually present. If not, we return `FORMERR`
     // to indicate that the sender made something wrong.
     else {
-        packet.header.rescode = packet::ResultCode::FORMERR;
+        packet.header.response_code = packet::ResponseCode::FormatError;
     }
 
     // The only thing remaining is to encode our response and send it off!

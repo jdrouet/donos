@@ -1,47 +1,93 @@
 use std::net::{Ipv4Addr, Ipv6Addr};
 
+#[derive(Debug)]
+pub struct InvalidResponseCode(pub u8);
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ResultCode {
-    NOERROR = 0,
-    FORMERR = 1,
-    SERVFAIL = 2,
-    NXDOMAIN = 3,
-    NOTIMP = 4,
-    REFUSED = 5,
+pub enum ResponseCode {
+    /// No error condition
+    NoError = 0,
+    /// Format error - The name server was unable to interpret the query.
+    FormatError = 1,
+    /// Server failure - The name server was unable to process this query due to a problem with the name server.
+    ServerFailure = 2,
+    /// Name Error - Meaningful only for responses from an authoritative name server,
+    /// this code signifies that the domain name referenced in the query does not exist.
+    /// Previously name NXDOMAIN
+    NameError = 3,
+    /// Not Implemented - The name server does not support the requested kind of query.
+    NotImplemented = 4,
+    /// Refused - The name server refuses to perform the specified operation for policy reasons.
+    /// For example, a name server may not wish to provide the information to the particular requester,
+    /// or a name server may not wish to perform a particular operation (e.g., zone transfer) for particular data.
+    Refused = 5,
 }
 
-impl ResultCode {
-    pub fn from_num(num: u8) -> ResultCode {
+/// TODO Handle invalid values
+impl ResponseCode {
+    pub fn from_num(num: u8) -> ResponseCode {
         match num {
-            1 => ResultCode::FORMERR,
-            2 => ResultCode::SERVFAIL,
-            3 => ResultCode::NXDOMAIN,
-            4 => ResultCode::NOTIMP,
-            5 => ResultCode::REFUSED,
-            0 | _ => ResultCode::NOERROR,
+            1 => ResponseCode::FormatError,
+            2 => ResponseCode::ServerFailure,
+            3 => ResponseCode::NameError,
+            4 => ResponseCode::NotImplemented,
+            5 => ResponseCode::Refused,
+            _ => ResponseCode::NoError,
         }
     }
 }
 #[derive(Clone, Debug)]
 pub struct DnsHeader {
+    /// A 16 bit identifier assigned by the program that
+    /// generates any kind of query.  This identifier is copied
+    /// the corresponding reply and can be used by the requester
+    /// to match up replies to outstanding queries.
     pub id: u16, // 16 bits
 
-    pub recursion_desired: bool,    // 1 bit
-    pub truncated_message: bool,    // 1 bit
+    /// RD Recursion Desired - this bit may be set in a query and is copied into the response.
+    /// If RD is set, it directs the name server to pursue the query recursively.
+    /// Recursive query support is optional.
+    pub recursion_desired: bool, // 1 bit
+    /// TC TrunCation - specifies that this message was truncated due to length greater
+    /// than that permitted on the transmission channel.
+    pub truncated_message: bool, // 1 bit
+    /// AA Authoritative Answer - this bit is valid in responses,
+    /// and specifies that the responding name server is an authority
+    /// for the domain name in question section.
+    ///
+    /// Note that the contents of the answer section may have multiple owner names because of aliases.
+    /// The AA bit corresponds to the name which matches the query name,
+    /// or the first owner name in the answer section.
     pub authoritative_answer: bool, // 1 bit
-    pub opcode: u8,                 // 4 bits
-    pub response: bool,             // 1 bit
+    /// OPCODE A four bit field that specifies kind of query in this message.
+    /// This value is set by the originator of a query and copied into the response.
+    /// The values are:
+    ///   0               a standard query (QUERY)
+    ///   1               an inverse query (IQUERY)
+    ///   2               a server status request (STATUS)
+    ///   3-15            reserved for future use
+    pub opcode: u8, // 4 bits
+    /// QR A one bit field that specifies whether this message is a query (0), or a response (1).
+    pub response: bool, // 1 bit
 
-    pub rescode: ResultCode,       // 4 bits
-    pub checking_disabled: bool,   // 1 bit
-    pub authed_data: bool,         // 1 bit
-    pub z: bool,                   // 1 bit
+    /// Response code - this 4 bit field is set as part of responses.
+    pub response_code: ResponseCode, // 4 bits
+    pub checking_disabled: bool, // 1 bit
+    pub authed_data: bool,       // 1 bit
+    /// Z Reserved for future use.  Must be zero in all queries and responses.
+    pub z: bool, // 1 bit
+    /// RA Recursion Available - this be is set or cleared in a response,
+    /// and denotes whether recursive query support is available in the name server.
     pub recursion_available: bool, // 1 bit
 
-    pub questions: u16,             // 16 bits
-    pub answers: u16,               // 16 bits
+    /// QDCOUNT an unsigned 16 bit integer specifying the number of entries in the question section.
+    pub questions: u16, // 16 bits
+    /// ANCOUNT an unsigned 16 bit integer specifying the number of resource records in the answer section.
+    pub answers: u16, // 16 bits
+    /// NSCOUNT an unsigned 16 bit integer specifying the number of name server resource records in the authority records section.
     pub authoritative_entries: u16, // 16 bits
-    pub resource_entries: u16,      // 16 bits
+    /// ARCOUNT an unsigned 16 bit integer specifying the number of resource records in the additional records section.
+    pub resource_entries: u16, // 16 bits
 }
 
 impl DnsHeader {
@@ -55,7 +101,7 @@ impl DnsHeader {
             opcode: 0,
             response: false,
 
-            rescode: ResultCode::NOERROR,
+            response_code: ResponseCode::NoError,
             checking_disabled: false,
             authed_data: false,
             z: false,
@@ -75,19 +121,19 @@ impl DnsHeader {
         self.id = buffer.read_u16()?;
 
         let flags = buffer.read_u16()?;
-        let a = (flags >> 8) as u8;
-        let b = (flags & 0xFF) as u8;
-        self.recursion_desired = (a & (1 << 0)) > 0;
-        self.truncated_message = (a & (1 << 1)) > 0;
-        self.authoritative_answer = (a & (1 << 2)) > 0;
-        self.opcode = (a >> 3) & 0x0F;
-        self.response = (a & (1 << 7)) > 0;
+        let head = (flags >> 8) as u8;
+        self.recursion_desired = (head & (1 << 0)) > 0;
+        self.truncated_message = (head & (1 << 1)) > 0;
+        self.authoritative_answer = (head & (1 << 2)) > 0;
+        self.opcode = (head >> 3) & 0x0F;
+        self.response = (head & (1 << 7)) > 0;
 
-        self.rescode = ResultCode::from_num(b & 0x0F);
-        self.checking_disabled = (b & (1 << 4)) > 0;
-        self.authed_data = (b & (1 << 5)) > 0;
-        self.z = (b & (1 << 6)) > 0;
-        self.recursion_available = (b & (1 << 7)) > 0;
+        let tail = (flags & 0xFF) as u8;
+        self.response_code = ResponseCode::from_num(tail & 0x0F);
+        self.checking_disabled = (tail & (1 << 4)) > 0;
+        self.authed_data = (tail & (1 << 5)) > 0;
+        self.z = (tail & (1 << 6)) > 0;
+        self.recursion_available = (tail & (1 << 7)) > 0;
 
         self.questions = buffer.read_u16()?;
         self.answers = buffer.read_u16()?;
@@ -108,11 +154,11 @@ impl DnsHeader {
                 | ((self.truncated_message as u8) << 1)
                 | ((self.authoritative_answer as u8) << 2)
                 | (self.opcode << 3)
-                | ((self.response as u8) << 7) as u8,
+                | ((self.response as u8) << 7),
         )?;
 
         buffer.write_u8(
-            (self.rescode as u8)
+            (self.response_code as u8)
                 | ((self.checking_disabled as u8) << 4)
                 | ((self.authed_data as u8) << 5)
                 | ((self.z as u8) << 6)
@@ -129,19 +175,24 @@ impl DnsHeader {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash, Copy)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum QueryType {
-    UNKNOWN(u16),
-    A,     // 1
-    NS,    // 2
+    Unknown(u16),
+    /// a host address
+    A, // 1
+    /// an authoritative name server
+    NS, // 2
+    /// the canonical name for an alias
     CNAME, // 5
-    MX,    // 15
-    AAAA,  // 28
+    /// mail exchange
+    MX, // 15
+    AAAA, // 28
 }
 
 impl QueryType {
-    pub fn to_num(&self) -> u16 {
-        match *self {
-            QueryType::UNKNOWN(x) => x,
+    pub fn to_num(self) -> u16 {
+        match self {
+            QueryType::Unknown(x) => x,
             QueryType::A => 1,
             QueryType::NS => 2,
             QueryType::CNAME => 5,
@@ -150,6 +201,7 @@ impl QueryType {
         }
     }
 
+    /// TODO Handle invalid values
     pub fn from_num(num: u16) -> QueryType {
         match num {
             1 => QueryType::A,
@@ -157,34 +209,92 @@ impl QueryType {
             5 => QueryType::CNAME,
             15 => QueryType::MX,
             28 => QueryType::AAAA,
-            _ => QueryType::UNKNOWN(num),
+            _ => QueryType::Unknown(num),
+        }
+    }
+}
+
+/// CLASS fields appear in resource records.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum DnsClass {
+    /// IN - the Internet
+    Internet = 1,
+    /// CS - the CSNET class (Obsolete - used only for examples in some obsolete RFCs)
+    Csnet = 2,
+    /// CH - the CHAOS class
+    Chaos = 3,
+    /// HS - Hesiod [Dyer 87]
+    Hesiod = 4,
+}
+
+impl Default for DnsClass {
+    fn default() -> Self {
+        Self::Internet
+    }
+}
+
+/// TODO Handle invalid values
+impl DnsClass {
+    fn from_num(value: u16) -> Self {
+        match value {
+            1 => Self::Internet,
+            2 => Self::Csnet,
+            3 => Self::Chaos,
+            4 => Self::Hesiod,
+            _other => Self::Internet,
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DnsQuestion {
+    /// QNAME a domain name represented as a sequence of labels,
+    /// where each label consists of a length octet followed by that number of octets.
+    /// The domain name terminates with the zero length octet for the null label of the root.
+    /// Note that this field may be an odd number of octets; no padding is used.
     pub name: String,
+    /// QTYPE a two octet code which specifies the type of the query.
+    /// The values for this field include all codes valid for a TYPE field,
+    /// together with some more general codes which can match more than one type of RR.
     pub qtype: QueryType,
+    /// QCLASS a two octet code that specifies the class of the query.
+    /// For example, the QCLASS field is IN for the Internet.
+    pub qclass: DnsClass,
+}
+
+impl Default for DnsQuestion {
+    fn default() -> Self {
+        Self {
+            name: String::default(),
+            qtype: QueryType::Unknown(0),
+            qclass: DnsClass::Internet,
+        }
+    }
 }
 
 impl DnsQuestion {
-    pub fn new(name: String, qtype: QueryType) -> DnsQuestion {
-        DnsQuestion {
-            name: name,
-            qtype: qtype,
+    pub fn new(name: String, qtype: QueryType) -> Self {
+        Self {
+            name,
+            qtype,
+            qclass: Default::default(),
         }
     }
 
     pub fn read(
-        &mut self,
         buffer: &mut crate::buffer::BytePacketBuffer,
-    ) -> Result<(), crate::buffer::ReaderError> {
-        buffer.read_qname(&mut self.name)?;
-        self.qtype = QueryType::from_num(buffer.read_u16()?); // qtype
-        let _ = buffer.read_u16()?; // class
+    ) -> Result<Self, crate::buffer::ReaderError> {
+        let mut name = String::new();
+        buffer.read_qname(&mut name)?;
+        let qtype = QueryType::from_num(buffer.read_u16()?); // qtype
+        let qclass = DnsClass::from_num(buffer.read_u16()?); // class
 
-        Ok(())
+        Ok(DnsQuestion {
+            name,
+            qtype,
+            qclass,
+        })
     }
 
     pub fn write(
@@ -195,15 +305,16 @@ impl DnsQuestion {
 
         let typenum = self.qtype.to_num();
         buffer.write_u16(typenum)?;
-        buffer.write_u16(1)?;
+        buffer.write_u16(self.qclass as u16)?;
 
         Ok(())
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum DnsRecord {
-    UNKNOWN {
+    Unknown {
         domain: String,
         qtype: u16,
         data_len: u16,
@@ -241,13 +352,25 @@ impl DnsRecord {
     pub fn read(
         buffer: &mut crate::buffer::BytePacketBuffer,
     ) -> Result<DnsRecord, crate::buffer::ReaderError> {
+        // NAME a domain name to which this resource record pertains.
         let mut domain = String::new();
         buffer.read_qname(&mut domain)?;
 
+        // TYPE two octets containing one of the RR type codes.
+        // This field specifies the meaning of the data in the RDATA field.
         let qtype_num = buffer.read_u16()?;
         let qtype = QueryType::from_num(qtype_num);
-        let _ = buffer.read_u16()?;
+
+        // CLASS two octets which specify the class of the data in the RDATA field.
+        let _qclass = buffer.read_u16()?;
+
+        // TTL a 32 bit unsigned integer that specifies the time interval (in seconds)
+        // that the resource record may be cached before it should be discarded.
+        // Zero values are interpreted to mean that the RR can only be used for
+        // the transaction in progress, and should not be cached.
         let ttl = buffer.read_u32()?;
+
+        // RDLENGTH an unsigned 16 bit integer that specifies the length in octets of the RDATA field.
         let data_len = buffer.read_u16()?;
 
         match qtype {
@@ -257,14 +380,10 @@ impl DnsRecord {
                     ((raw_addr >> 24) & 0xFF) as u8,
                     ((raw_addr >> 16) & 0xFF) as u8,
                     ((raw_addr >> 8) & 0xFF) as u8,
-                    ((raw_addr >> 0) & 0xFF) as u8,
+                    (raw_addr & 0xFF) as u8,
                 );
 
-                Ok(DnsRecord::A {
-                    domain: domain,
-                    addr: addr,
-                    ttl: ttl,
-                })
+                Ok(DnsRecord::A { domain, addr, ttl })
             }
             QueryType::AAAA => {
                 let raw_addr1 = buffer.read_u32()?;
@@ -273,29 +392,25 @@ impl DnsRecord {
                 let raw_addr4 = buffer.read_u32()?;
                 let addr = Ipv6Addr::new(
                     ((raw_addr1 >> 16) & 0xFFFF) as u16,
-                    ((raw_addr1 >> 0) & 0xFFFF) as u16,
+                    (raw_addr1 & 0xFFFF) as u16,
                     ((raw_addr2 >> 16) & 0xFFFF) as u16,
-                    ((raw_addr2 >> 0) & 0xFFFF) as u16,
+                    (raw_addr2 & 0xFFFF) as u16,
                     ((raw_addr3 >> 16) & 0xFFFF) as u16,
-                    ((raw_addr3 >> 0) & 0xFFFF) as u16,
+                    (raw_addr3 & 0xFFFF) as u16,
                     ((raw_addr4 >> 16) & 0xFFFF) as u16,
-                    ((raw_addr4 >> 0) & 0xFFFF) as u16,
+                    (raw_addr4 & 0xFFFF) as u16,
                 );
 
-                Ok(DnsRecord::AAAA {
-                    domain: domain,
-                    addr: addr,
-                    ttl: ttl,
-                })
+                Ok(DnsRecord::AAAA { domain, addr, ttl })
             }
             QueryType::NS => {
                 let mut ns = String::new();
                 buffer.read_qname(&mut ns)?;
 
                 Ok(DnsRecord::NS {
-                    domain: domain,
+                    domain,
                     host: ns,
-                    ttl: ttl,
+                    ttl,
                 })
             }
             QueryType::CNAME => {
@@ -303,9 +418,9 @@ impl DnsRecord {
                 buffer.read_qname(&mut cname)?;
 
                 Ok(DnsRecord::CNAME {
-                    domain: domain,
+                    domain,
                     host: cname,
-                    ttl: ttl,
+                    ttl,
                 })
             }
             QueryType::MX => {
@@ -314,20 +429,20 @@ impl DnsRecord {
                 buffer.read_qname(&mut mx)?;
 
                 Ok(DnsRecord::MX {
-                    domain: domain,
-                    priority: priority,
+                    domain,
+                    priority,
                     host: mx,
-                    ttl: ttl,
+                    ttl,
                 })
             }
-            QueryType::UNKNOWN(_) => {
+            QueryType::Unknown(_) => {
                 buffer.step(data_len as usize)?;
 
-                Ok(DnsRecord::UNKNOWN {
-                    domain: domain,
+                Ok(DnsRecord::Unknown {
+                    domain,
                     qtype: qtype_num,
-                    data_len: data_len,
-                    ttl: ttl,
+                    data_len,
+                    ttl,
                 })
             }
         }
@@ -428,7 +543,7 @@ impl DnsRecord {
                     buffer.write_u16(*octet)?;
                 }
             }
-            DnsRecord::UNKNOWN { .. } => {
+            DnsRecord::Unknown { .. } => {
                 println!("Skipping record: {:?}", self);
             }
         }
@@ -464,22 +579,17 @@ impl DnsPacket {
         result.header.read(buffer)?;
 
         for _ in 0..result.header.questions {
-            let mut question = DnsQuestion::new("".to_string(), QueryType::UNKNOWN(0));
-            question.read(buffer)?;
-            result.questions.push(question);
+            result.questions.push(DnsQuestion::read(buffer)?);
         }
 
         for _ in 0..result.header.answers {
-            let rec = DnsRecord::read(buffer)?;
-            result.answers.push(rec);
+            result.answers.push(DnsRecord::read(buffer)?);
         }
         for _ in 0..result.header.authoritative_entries {
-            let rec = DnsRecord::read(buffer)?;
-            result.authorities.push(rec);
+            result.authorities.push(DnsRecord::read(buffer)?);
         }
         for _ in 0..result.header.resource_entries {
-            let rec = DnsRecord::read(buffer)?;
-            result.resources.push(rec);
+            result.resources.push(DnsRecord::read(buffer)?);
         }
 
         Ok(result)
@@ -516,16 +626,21 @@ impl DnsPacket {
 #[cfg(test)]
 mod tests {
     use crate::buffer::BytePacketBuffer;
-    use std::fs::File;
-    use std::io::Read;
-    use std::matches;
     use std::net::Ipv4Addr;
+
+    fn copy_to(source: &[u8], target: &mut [u8]) {
+        for (idx, val) in source.iter().enumerate() {
+            target[idx] = *val;
+        }
+    }
 
     #[test]
     fn should_read_response_packet() {
-        let mut f = File::open("./data/response_packet.txt").unwrap();
         let mut buffer = BytePacketBuffer::new();
-        f.read(&mut buffer.buf).unwrap();
+        copy_to(
+            include_bytes!("../data/response_packet.bin"),
+            &mut buffer.buf,
+        );
 
         let packet = super::DnsPacket::from_buffer(&mut buffer).unwrap();
         assert_eq!(packet.header.id, 38005);
