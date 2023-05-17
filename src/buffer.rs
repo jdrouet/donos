@@ -181,6 +181,19 @@ impl BytePacketBuffer {
 }
 
 impl BytePacketBuffer {
+    fn set(&mut self, pos: usize, val: u8) -> Result<(), WriterError> {
+        self.buf[pos] = val;
+
+        Ok(())
+    }
+
+    pub fn set_u16(&mut self, pos: usize, val: u16) -> Result<(), WriterError> {
+        self.set(pos, (val >> 8) as u8)?;
+        self.set(pos + 1, (val & 0xFF) as u8)?;
+
+        Ok(())
+    }
+
     fn write(&mut self, val: u8) -> Result<(), WriterError> {
         if self.pos >= 512 {
             return Err(WriterError::EndOfBuffer);
