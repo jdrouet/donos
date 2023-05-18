@@ -78,7 +78,7 @@ impl BytePacketBuffer {
     }
 
     /// Read a single byte and move the position one step forward
-    fn read(&mut self) -> Result<u8, ReaderError> {
+    pub fn read(&mut self) -> Result<u8, ReaderError> {
         if self.pos >= 512 {
             return Err(ReaderError::EndOfBuffer);
         }
@@ -98,10 +98,11 @@ impl BytePacketBuffer {
 
     /// Get a range of bytes
     pub fn get_range(&mut self, start: usize, len: usize) -> Result<&[u8], ReaderError> {
-        if start + len >= 512 {
+        let end = start + len;
+        if end >= 512 {
             return Err(ReaderError::EndOfBuffer);
         }
-        Ok(&self.buf[start..start + len])
+        Ok(&self.buf[start..end])
     }
 
     /// Read two bytes, stepping two steps forward

@@ -117,9 +117,8 @@ impl DnsHeader {
     pub fn read(buffer: &mut BytePacketBuffer) -> Result<Self, ReaderError> {
         let id = buffer.read_u16()?;
 
-        let flags = buffer.read_u16()?;
-        let head = (flags >> 8) as u8;
-        let tail = (flags & 0xFF) as u8;
+        let head = buffer.read()?;
+        let tail = buffer.read()?;
 
         let questions = buffer.read_u16()?;
         let answers = buffer.read_u16()?;
