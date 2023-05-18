@@ -22,7 +22,7 @@ impl LookupService {
         })
     }
 
-    pub async fn lookup(&self, qname: &str, qtype: QueryType) -> Result<DnsPacket> {
+    pub async fn execute(&self, qname: &str, qtype: QueryType) -> Result<DnsPacket> {
         let mut packet = DnsPacket::new();
 
         packet.header.id = self.index.fetch_add(1, Ordering::SeqCst);
