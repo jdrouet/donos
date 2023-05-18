@@ -93,7 +93,7 @@ impl DnsServer {
         let mut tx = self.database.begin().await?;
 
         // Create and initialize the response packet
-        let mut packet = DnsPacket::new();
+        let mut packet = DnsPacket::default();
         packet.header.id = request.header.id;
         packet.header.recursion_desired = true;
         packet.header.recursion_available = true;
