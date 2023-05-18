@@ -20,15 +20,16 @@ impl Default for DnsClass {
     }
 }
 
-/// TODO Handle invalid values
-impl DnsClass {
-    fn from_num(value: u16) -> Self {
+impl TryFrom<u16> for DnsClass {
+    type Error = ReaderError;
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {
-            1 => Self::Internet,
-            2 => Self::Csnet,
-            3 => Self::Chaos,
-            4 => Self::Hesiod,
-            _other => Self::Internet,
+            1 => Ok(Self::Internet),
+            2 => Ok(Self::Csnet),
+            3 => Ok(Self::Chaos),
+            4 => Ok(Self::Hesiod),
+            other => Err(ReaderError::InvalidClass(other)),
         }
     }
 }
@@ -49,7 +50,7 @@ pub enum QueryType {
 }
 
 impl QueryType {
-    pub fn to_num(self) -> u16 {
+    pub fn into_num(self) -> u16 {
         match self {
             QueryType::Unknown(x) => x,
             QueryType::A => 1,
@@ -112,7 +113,7 @@ impl DnsQuestion {
         let mut name = String::new();
         buffer.read_qname(&mut name)?;
         let qtype = QueryType::from_num(buffer.read_u16()?); // qtype
-        let qclass = DnsClass::from_num(buffer.read_u16()?); // class
+        let qclass = DnsClass::try_from(buffer.read_u16()?)?; // class
 
         Ok(DnsQuestion {
             name,
@@ -124,7 +125,7 @@ impl DnsQuestion {
     pub fn write(&self, buffer: &mut BytePacketBuffer) -> Result<(), WriterError> {
         buffer.write_qname(&self.name)?;
 
-        let typenum = self.qtype.to_num();
+        let typenum = self.qtype.into_num();
         buffer.write_u16(typenum)?;
         buffer.write_u16(self.qclass as u16)?;
 

@@ -2,6 +2,8 @@
 pub enum ReaderError {
     EndOfBuffer,
     TooManyJumps(usize),
+    InvalidResponseCode(u8),
+    InvalidClass(u16),
 }
 
 impl From<ReaderError> for std::io::Error {
@@ -13,6 +15,14 @@ impl From<ReaderError> for std::io::Error {
             ReaderError::TooManyJumps(size) => std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!("too many jumps when reading: {size}"),
+            ),
+            ReaderError::InvalidResponseCode(value) => std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("invalid response code: {value}"),
+            ),
+            ReaderError::InvalidClass(value) => std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("invalid class: {value}"),
             ),
         }
     }

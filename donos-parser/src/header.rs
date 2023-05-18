@@ -20,16 +20,18 @@ pub enum ResponseCode {
     Refused = 5,
 }
 
-/// TODO Handle invalid values
-impl ResponseCode {
-    pub fn from_num(num: u8) -> ResponseCode {
-        match num {
-            1 => ResponseCode::FormatError,
-            2 => ResponseCode::ServerFailure,
-            3 => ResponseCode::NameError,
-            4 => ResponseCode::NotImplemented,
-            5 => ResponseCode::Refused,
-            _ => ResponseCode::NoError,
+impl TryFrom<u8> for ResponseCode {
+    type Error = ReaderError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ResponseCode::NoError),
+            1 => Ok(ResponseCode::FormatError),
+            2 => Ok(ResponseCode::ServerFailure),
+            3 => Ok(ResponseCode::NameError),
+            4 => Ok(ResponseCode::NotImplemented),
+            5 => Ok(ResponseCode::Refused),
+            other => Err(ReaderError::InvalidResponseCode(other)),
         }
     }
 }
@@ -132,7 +134,7 @@ impl DnsHeader {
             authoritative_answer: (head & (1 << 2)) > 0,
             opcode: (head >> 3) & 0x0F,
             response: (head & (1 << 7)) > 0,
-            response_code: ResponseCode::from_num(tail & 0x0F),
+            response_code: ResponseCode::try_from(tail & 0x0F)?,
             checking_disabled: (tail & (1 << 4)) > 0,
             authed_data: (tail & (1 << 5)) > 0,
             z: (tail & (1 << 6)) > 0,
