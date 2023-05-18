@@ -28,7 +28,7 @@ mod tests {
             &mut buffer.buf,
         );
 
-        let packet = crate::packet::DnsPacket::from_buffer(&mut buffer).unwrap();
+        let packet = crate::packet::DnsPacket::try_from(buffer).unwrap();
         assert_eq!(packet.header.id, 38005);
         assert_eq!(packet.header.recursion_desired, true);
         assert_eq!(packet.header.truncated_message, false);

@@ -10,28 +10,30 @@ pub struct DnsPacket {
     pub resources: Vec<DnsRecord>,
 }
 
-impl DnsPacket {
-    pub fn from_buffer(buffer: &mut BytePacketBuffer) -> Result<DnsPacket, ReaderError> {
-        let header = DnsHeader::read(buffer)?;
+impl TryFrom<BytePacketBuffer> for DnsPacket {
+    type Error = ReaderError;
+
+    fn try_from(mut buffer: BytePacketBuffer) -> Result<Self, Self::Error> {
+        let header = DnsHeader::read(&mut buffer)?;
 
         let mut questions = Vec::with_capacity(header.questions as usize);
         for _ in 0..header.questions {
-            questions.push(DnsQuestion::read(buffer)?);
+            questions.push(DnsQuestion::read(&mut buffer)?);
         }
 
         let mut answers = Vec::with_capacity(header.answers as usize);
         for _ in 0..header.answers {
-            answers.push(DnsRecord::read(buffer)?);
+            answers.push(DnsRecord::read(&mut buffer)?);
         }
 
         let mut authorities = Vec::with_capacity(header.authoritative_entries as usize);
         for _ in 0..header.authoritative_entries {
-            authorities.push(DnsRecord::read(buffer)?);
+            authorities.push(DnsRecord::read(&mut buffer)?);
         }
 
         let mut resources = Vec::with_capacity(header.resource_entries as usize);
         for _ in 0..header.resource_entries {
-            resources.push(DnsRecord::read(buffer)?);
+            resources.push(DnsRecord::read(&mut buffer)?);
         }
 
         Ok(DnsPacket {
@@ -42,28 +44,31 @@ impl DnsPacket {
             resources,
         })
     }
+}
 
-    pub fn write(&mut self, buffer: &mut BytePacketBuffer) -> Result<(), WriterError> {
+impl DnsPacket {
+    pub fn create_buffer(&mut self) -> Result<BytePacketBuffer, WriterError> {
+        let mut buffer = BytePacketBuffer::default();
         self.header.questions = self.questions.len() as u16;
         self.header.answers = self.answers.len() as u16;
         self.header.authoritative_entries = self.authorities.len() as u16;
         self.header.resource_entries = self.resources.len() as u16;
 
-        self.header.write(buffer)?;
+        self.header.write(&mut buffer)?;
 
         for question in &self.questions {
-            question.write(buffer)?;
+            question.write(&mut buffer)?;
         }
         for rec in &self.answers {
-            rec.write(buffer)?;
+            rec.write(&mut buffer)?;
         }
         for rec in &self.authorities {
-            rec.write(buffer)?;
+            rec.write(&mut buffer)?;
         }
         for rec in &self.resources {
-            rec.write(buffer)?;
+            rec.write(&mut buffer)?;
         }
 
-        Ok(())
+        Ok(buffer)
     }
 }

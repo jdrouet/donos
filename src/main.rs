@@ -88,7 +88,7 @@ impl DnsServer {
 
         // Next, `DnsPacket::from_buffer` is used to parse the raw bytes into
         // a `DnsPacket`.
-        let mut request = DnsPacket::from_buffer(&mut req_buffer)?;
+        let mut request = DnsPacket::try_from(req_buffer)?;
 
         let mut tx = self.database.begin().await?;
 
@@ -145,8 +145,7 @@ impl DnsServer {
         }
 
         // The only thing remaining is to encode our response and send it off!
-        let mut res_buffer = BytePacketBuffer::default();
-        packet.write(&mut res_buffer)?;
+        let res_buffer = packet.create_buffer()?;
 
         let len = res_buffer.pos();
         let data = res_buffer.get_range(0, len)?;

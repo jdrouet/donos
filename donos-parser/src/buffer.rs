@@ -107,7 +107,7 @@ impl BytePacketBuffer {
     }
 
     /// Get a range of bytes
-    pub fn get_range(&mut self, start: usize, len: usize) -> Result<&[u8], ReaderError> {
+    pub fn get_range(&self, start: usize, len: usize) -> Result<&[u8], ReaderError> {
         let end = start + len;
         if end >= 512 {
             return Err(ReaderError::EndOfBuffer);

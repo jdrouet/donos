@@ -31,8 +31,7 @@ impl LookupService {
             .questions
             .push(DnsQuestion::new(qname.to_string(), qtype));
 
-        let mut req_buffer = BytePacketBuffer::default();
-        packet.write(&mut req_buffer)?;
+        let req_buffer = packet.create_buffer()?;
         self.socket
             .send_to(&req_buffer.buf[0..req_buffer.pos], self.server)
             .await?;
@@ -40,6 +39,6 @@ impl LookupService {
         let mut res_buffer = BytePacketBuffer::default();
         self.socket.recv_from(&mut res_buffer.buf).await?;
 
-        Ok(DnsPacket::from_buffer(&mut res_buffer)?)
+        Ok(DnsPacket::try_from(res_buffer)?)
     }
 }
