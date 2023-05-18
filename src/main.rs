@@ -1,15 +1,13 @@
-use buffer::{ReaderError, WriterError};
 use tokio::net::UdpSocket;
 
-mod buffer;
-mod packet;
+// mod buffer;
+// mod packet;
 mod repository;
 mod service;
 
-use crate::buffer::BytePacketBuffer;
-use crate::packet::{DnsPacket, ResponseCode};
 use crate::service::database::{Config as DatabaseConfig, Error as DatabaseError, Pool};
 use crate::service::lookup::LookupService;
+use donos_parser::{BytePacketBuffer, DnsPacket, ReaderError, ResponseCode, WriterError};
 
 fn init_logs() {
     use tracing_subscriber::layer::SubscriberExt;
@@ -79,7 +77,7 @@ impl DnsServer {
     async fn handle(&self) -> Result<(), HandleError> {
         // With a socket ready, we can go ahead and read a packet. This will
         // block until one is received.
-        let mut req_buffer = BytePacketBuffer::new();
+        let mut req_buffer = BytePacketBuffer::default();
 
         // The `recv_from` function will write the data into the provided buffer,
         // and return the length of the data read as well as the source address.
@@ -147,7 +145,7 @@ impl DnsServer {
         }
 
         // The only thing remaining is to encode our response and send it off!
-        let mut res_buffer = BytePacketBuffer::new();
+        let mut res_buffer = BytePacketBuffer::default();
         packet.write(&mut res_buffer)?;
 
         let len = res_buffer.pos();

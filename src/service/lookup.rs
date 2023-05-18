@@ -1,5 +1,4 @@
-use crate::buffer::BytePacketBuffer;
-use crate::packet::{DnsPacket, DnsQuestion, QueryType};
+use donos_parser::{BytePacketBuffer, DnsPacket, DnsQuestion, QueryType};
 use std::io::Result;
 use std::sync::atomic::{AtomicU16, Ordering};
 use tokio::net::UdpSocket;
@@ -32,13 +31,13 @@ impl LookupService {
             .questions
             .push(DnsQuestion::new(qname.to_string(), qtype));
 
-        let mut req_buffer = BytePacketBuffer::new();
+        let mut req_buffer = BytePacketBuffer::default();
         packet.write(&mut req_buffer)?;
         self.socket
             .send_to(&req_buffer.buf[0..req_buffer.pos], self.server)
             .await?;
 
-        let mut res_buffer = BytePacketBuffer::new();
+        let mut res_buffer = BytePacketBuffer::default();
         self.socket.recv_from(&mut res_buffer.buf).await?;
 
         Ok(DnsPacket::from_buffer(&mut res_buffer)?)
