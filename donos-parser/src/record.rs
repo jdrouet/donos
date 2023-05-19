@@ -11,39 +11,39 @@ pub struct DnsRecordA {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DnsRecordAAAA {
-    domain: String,
-    addr: Ipv6Addr,
-    ttl: u32,
+    pub domain: String,
+    pub addr: Ipv6Addr,
+    pub ttl: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DnsRecordNS {
-    domain: String,
-    host: String,
-    ttl: u32,
+    pub domain: String,
+    pub host: String,
+    pub ttl: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DnsRecordCNAME {
-    domain: String,
-    host: String,
-    ttl: u32,
+    pub domain: String,
+    pub host: String,
+    pub ttl: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DnsRecordMX {
-    domain: String,
-    priority: u16,
-    host: String,
-    ttl: u32,
+    pub domain: String,
+    pub priority: u16,
+    pub host: String,
+    pub ttl: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct DnsRecordUnknown {
-    domain: String,
-    qtype: u16,
-    data_len: u16,
-    ttl: u32,
+    pub domain: String,
+    pub qtype: u16,
+    pub data_len: u16,
+    pub ttl: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

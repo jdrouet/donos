@@ -1,7 +1,6 @@
 use tokio::net::UdpSocket;
 
-// mod buffer;
-// mod packet;
+mod model;
 mod repository;
 mod service;
 
@@ -64,6 +63,7 @@ impl DnsServer {
     pub async fn new(address: &str) -> Result<Self, HandleError> {
         tracing::info!("starting dns server");
         let database = DatabaseConfig::from_env().build().await?;
+        crate::service::database::migrate(&database).await?;
         let lookup = LookupService::new().await?;
         let socket = UdpSocket::bind(address).await?;
 
@@ -103,10 +103,23 @@ impl DnsServer {
         if let Some(question) = request.questions.pop() {
             tracing::debug!("query: {question:?}");
 
-            if repository::host::is_blocked(&mut tx, &src, &question.name).await? {
+            if repository::resolver::is_blocked(&mut tx, &src, &question.name).await? {
                 tracing::error!("qname {} is blocked for {src:?}", question.name);
                 packet.header.response_code = ResponseCode::ServerFailure;
+            } else if let Some(found) =
+                model::record::find(&mut tx, question.qtype, &question.name).await?
+            {
+                tracing::debug!("{:?} {} found in cache", question.qtype, question.name);
+                packet.questions.push(question);
+                packet.header.response_code = ResponseCode::NoError;
+
+                packet.answers.push(found);
             } else {
+                tracing::debug!(
+                    "{:?} {} not found in cache, resolving",
+                    question.qtype,
+                    question.name
+                );
                 // Since all is set up and as expected, the query can be forwarded to the
                 // target server. There's always the possibility that the query will
                 // fail, in which case the `SERVFAIL` response code is set to indicate
@@ -119,6 +132,12 @@ impl DnsServer {
 
                         for rec in result.answers {
                             tracing::debug!("answer: {rec:?}");
+
+                            match model::record::persist(&mut tx, &rec).await {
+                                Ok(_) => tracing::debug!("persisted in cache"),
+                                Err(err) => tracing::error!("unable to persist in cache: {err:?}"),
+                            };
+
                             packet.answers.push(rec);
                         }
                         for rec in result.authorities {
@@ -151,6 +170,11 @@ impl DnsServer {
         let data = res_buffer.get_range(0, len)?;
 
         self.socket.send_to(data, src).await?;
+
+        match tx.commit().await {
+            Ok(_) => {}
+            Err(err) => tracing::error!("unable to commit transaction: {err:?}"),
+        };
 
         Ok(())
     }
