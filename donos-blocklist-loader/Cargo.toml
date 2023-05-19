@@ -1,0 +1,13 @@
+[package]
+name = "donos-blocklist-loader"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+base16ct = { version = "0.2", features = ["alloc"] }
+reqwest = { version = "0.11", features = [
+    "tokio-rustls",
+], default-features = false }
+sha2 = { version = "0.10" }
