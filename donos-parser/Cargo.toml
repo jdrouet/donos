@@ -11,3 +11,14 @@ fuzzing = ["dep:arbitrary"]
 
 [dependencies]
 arbitrary = { version = "1", optional = true, features = ["derive"] }
+
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "decoding"
+harness = false
+
+[[bench]]
+name = "encoding"
+harness = false
