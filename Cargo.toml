@@ -10,6 +10,8 @@ members = ["./donos-blocklist-loader", "./donos-parser"]
 
 [dependencies]
 donos-parser = { path = "./donos-parser" }
+
+clap = { version = "4.2", features = ["derive"] }
 sqlx = { version = "0.6", default-features = false, features = [
     "chrono",
     "macros",
