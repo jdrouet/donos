@@ -1,0 +1,1 @@
+drop table blocked_domains;

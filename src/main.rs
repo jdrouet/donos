@@ -1,12 +1,10 @@
-use tokio::net::UdpSocket;
-
 mod model;
-mod repository;
 mod service;
 
 use crate::service::database::{Config as DatabaseConfig, Error as DatabaseError, Pool};
 use crate::service::lookup::LookupService;
 use donos_parser::{BytePacketBuffer, DnsPacket, ReaderError, ResponseCode, WriterError};
+use tokio::net::UdpSocket;
 
 fn init_logs() {
     use tracing_subscriber::layer::SubscriberExt;
@@ -103,9 +101,9 @@ impl DnsServer {
         if let Some(question) = request.questions.pop() {
             tracing::debug!("query: {question:?}");
 
-            if repository::resolver::is_blocked(&mut tx, &src, &question.name).await? {
+            if model::blocklist::is_blocked(&mut tx, &src.ip(), &question.name).await? {
                 tracing::error!("qname {} is blocked for {src:?}", question.name);
-                packet.header.response_code = ResponseCode::ServerFailure;
+                packet.header.response_code = ResponseCode::NameError;
             } else if let Some(found) =
                 model::record::find(&mut tx, question.qtype, &question.name).await?
             {
