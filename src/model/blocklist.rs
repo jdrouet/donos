@@ -18,6 +18,7 @@ WHERE domain = $1"#,
     .await
 }
 
+#[allow(dead_code)]
 struct Blocklist {
     pub id: u32,
     pub url: String,

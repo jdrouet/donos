@@ -98,7 +98,7 @@ mod tests {
 0.0.0.0 this.is.also.blocked blocked.again
 0.0.0.0 this.is.also.blocked #Youwon'tgetthis
 0.0.0.0 this.is.also.blocked # or this"#,
-            BlocklistKind::EtcHost,
+            BlocklistKind::EtcHosts,
         );
         assert!(result.entries.contains("this.is.blocked"));
         assert!(result.entries.contains("this.is.also.blocked"));

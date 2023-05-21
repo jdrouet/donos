@@ -21,7 +21,7 @@ impl Command {
         let mut tx = database.begin().await.expect("couldn't start transaction");
 
         let loader = donos_blocklist_loader::BlocklistLoader::default();
-        for (name, item) in config.blocklist.members {
+        for (name, item) in config.blocklist.inner {
             match loader.load(&item.url, item.kind).await {
                 Ok(result) => {
                     tracing::debug!(

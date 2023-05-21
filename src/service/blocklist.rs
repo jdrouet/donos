@@ -9,5 +9,6 @@ pub struct BlocklistItem {
 
 #[derive(Debug, Default, serde::Deserialize)]
 pub struct Config {
-    pub members: BTreeMap<String, BlocklistItem>,
+    #[serde(flatten)]
+    pub inner: BTreeMap<String, BlocklistItem>,
 }
