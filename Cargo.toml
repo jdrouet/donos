@@ -1,7 +1,11 @@
 [package]
 name = "donos"
+description = "DNS server that allows you to filter domains using blocklists"
 version = "0.1.0"
 edition = "2021"
+authors = ["Jeremie Drouet <jeremie.drouet@gmail.com>"]
+readme = "readme.md"
+keywords = ["dns"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
