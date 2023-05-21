@@ -3,20 +3,45 @@ use std::io::Result;
 use std::sync::atomic::{AtomicU16, Ordering};
 use tokio::net::UdpSocket;
 
+#[derive(Debug, serde::Deserialize)]
+pub struct Config {
+    #[serde(default = "Config::default_servers")]
+    pub servers: Vec<String>,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            servers: Self::default_servers(),
+        }
+    }
+}
+
+impl Config {
+    pub fn default_servers() -> Vec<String> {
+        vec!["1.1.1.1".to_string(), "1.0.0.1".to_string()]
+    }
+}
+
+impl Config {
+    pub async fn build(self) -> Result<LookupService> {
+        LookupService::new(self).await
+    }
+}
+
 pub struct LookupService {
     socket: UdpSocket,
-    server: (&'static str, u16),
+    servers: Vec<(String, u16)>,
     index: AtomicU16,
 }
 
 impl LookupService {
-    pub async fn new() -> Result<Self> {
+    async fn new(config: Config) -> Result<Self> {
         let socket = UdpSocket::bind(("0.0.0.0", 43210)).await?;
-        let server = ("1.1.1.1", 53);
 
         Ok(Self {
             socket,
-            server,
+            servers: config.servers.into_iter().map(|item| (item, 53)).collect(),
             index: AtomicU16::new(0),
         })
     }
@@ -33,7 +58,10 @@ impl LookupService {
 
         let req_buffer = packet.create_buffer()?;
         self.socket
-            .send_to(&req_buffer.buf[0..req_buffer.pos], self.server)
+            .send_to(
+                &req_buffer.buf[0..req_buffer.pos],
+                self.servers[0].0.as_str(),
+            )
             .await?;
 
         let mut res_buffer = BytePacketBuffer::default();

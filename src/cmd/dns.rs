@@ -1,16 +1,50 @@
-use crate::service::database::{Config as DatabaseConfig, Error as DatabaseError, Pool};
+use crate::service::database::{Error as DatabaseError, Pool};
 use crate::service::lookup::LookupService;
 use clap::Args;
 use donos_parser::{BytePacketBuffer, DnsPacket, ReaderError, ResponseCode, WriterError};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use tokio::net::UdpSocket;
+
+#[derive(Debug, serde::Deserialize)]
+pub struct Config {
+    #[serde(default = "Config::default_host")]
+    pub host: IpAddr,
+    #[serde(default = "Config::default_port")]
+    pub port: u16,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            host: Self::default_host(),
+            port: Self::default_port(),
+        }
+    }
+}
+
+impl Config {
+    fn default_host() -> IpAddr {
+        IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))
+    }
+
+    fn default_port() -> u16 {
+        53
+    }
+}
+
+impl Config {
+    pub fn address(&self) -> SocketAddr {
+        SocketAddr::from((self.host, self.port))
+    }
+}
 
 /// Starts the DNS server, the core of the machine
 #[derive(Args, Debug)]
 pub struct Command;
 
 impl Command {
-    pub async fn run(&self) {
-        let dns_server = DnsServer::new("0.0.0.0:2053")
+    pub async fn run(&self, config: crate::config::Config) {
+        let dns_server = DnsServer::new(config)
             .await
             .expect("unable to create dns server");
         dns_server.run().await;
@@ -56,11 +90,14 @@ pub struct DnsServer {
 }
 
 impl DnsServer {
-    pub async fn new(address: &str) -> Result<Self, HandleError> {
-        tracing::info!("starting dns server");
-        let database = DatabaseConfig::from_env().build().await?;
+    pub async fn new(config: crate::config::Config) -> Result<Self, HandleError> {
+        tracing::info!("preparing dns server");
+        let database = config.database.build().await?;
         crate::service::database::migrate(&database).await?;
-        let lookup = LookupService::new().await?;
+        let lookup = config.lookup.build().await?;
+
+        let address = config.dns.address();
+        tracing::info!("starting dns server on {address:?}");
         let socket = UdpSocket::bind(address).await?;
 
         Ok(Self {

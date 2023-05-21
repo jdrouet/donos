@@ -4,17 +4,27 @@ pub type Pool = sqlx::sqlite::SqlitePool;
 pub type Transaction<'t> = sqlx::Transaction<'t, sqlx::Sqlite>;
 pub type Error = sqlx::Error;
 
+#[derive(Debug, serde::Deserialize)]
 pub struct Config {
+    #[serde(default = "Config::default_url")]
     url: String,
 }
 
-impl Config {
-    pub fn from_env() -> Self {
+impl Default for Config {
+    fn default() -> Self {
         Self {
-            url: std::env::var("DATABASE_URL").unwrap_or_else(|_| String::from("sqlite::memory:")),
+            url: Self::default_url(),
         }
     }
+}
 
+impl Config {
+    fn default_url() -> String {
+        "sqlite::memory:".to_string()
+    }
+}
+
+impl Config {
     pub async fn build(self) -> Result<Pool, sqlx::Error> {
         sqlx::sqlite::SqlitePoolOptions::new()
             .min_connections(1)

@@ -12,6 +12,8 @@ members = ["./donos-blocklist-loader", "./donos-parser"]
 donos-parser = { path = "./donos-parser" }
 
 clap = { version = "4.2", features = ["derive"] }
+config = { version = "0.13", default-features = false, features = ["toml"] }
+serde = { version = "1.0", features = ["derive"] }
 sqlx = { version = "0.6", default-features = false, features = [
     "chrono",
     "macros",

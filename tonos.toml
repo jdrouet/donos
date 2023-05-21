@@ -1,0 +1,29 @@
+[dns]
+# host = "0.0.0.0"
+port = 2053
+
+[blocklist]
+# To remove members that are in the database but not in the member list and the related blocked domains
+# prune = true
+
+# [blocklist.members.abuse]
+# url = "https://blocklistproject.github.io/Lists/alt-version/abuse-nl.txt"
+# kind = "no-ip"
+
+[blocklist.members.ads]
+url = "https://blocklistproject.github.io/Lists/ads.txt"
+kind = "etc-hosts"
+
+# [blocklist.members.crypto]
+# url = "https://blocklistproject.github.io/Lists/dnsmasq-version/crypto-dnsmasq.txt"
+# kind = "dnsmasq"
+
+# [blocklist.members.drugs]
+# url = "https://blocklistproject.github.io/Lists/adguard/drugs-ags.txt"
+# kind = "adguard"
+
+[database]
+# url = "sqlite::memory:"
+
+[lookup]
+servers = ["1.1.1.1", "1.0.0.1"]

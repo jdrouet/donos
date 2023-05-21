@@ -18,8 +18,9 @@ pub struct Args {
 
 impl Args {
     pub async fn run(self) {
+        let config = crate::config::Config::load(&self.config);
         match self.inner {
-            Commands::Dns(inner) => inner.run().await,
+            Commands::Dns(inner) => inner.run(config).await,
         }
     }
 }

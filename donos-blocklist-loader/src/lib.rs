@@ -1,23 +1,36 @@
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 
-fn hash(input: &str) -> String {
-    let result = Sha256::new().chain_update(input).finalize();
-    base16ct::lower::encode_string(&result)
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+pub enum BlocklistKind {
+    EtcHost,
+}
+
+impl BlocklistKind {
+    fn parse(self, input: &str) -> HashSet<String> {
+        match self {
+            Self::EtcHost => parse_hostfile(input),
+        }
+    }
 }
 
 fn parse_hostfile(input: &str) -> HashSet<String> {
     input
         .split('\n')
         .flat_map(|line| {
-            line.trim()
-                .split_whitespace()
-                .take_while(|item| !item.starts_with("#"))
+            line.split_whitespace()
+                .take_while(|item| !item.starts_with('#'))
                 .enumerate()
                 .filter_map(|(idx, item)| if idx > 0 { Some(item) } else { None })
                 .map(|item| item.to_string())
         })
         .collect()
+}
+
+fn hash(input: &str) -> String {
+    let result = Sha256::new().chain_update(input).finalize();
+    base16ct::lower::encode_string(&result)
 }
 
 #[derive(Debug)]
@@ -27,9 +40,9 @@ pub struct Blocklist {
 }
 
 impl Blocklist {
-    pub fn from_hostfile(value: &str) -> Self {
+    pub fn from_file(value: &str, kind: BlocklistKind) -> Self {
         let hash = hash(value);
-        let entries = parse_hostfile(value);
+        let entries = kind.parse(value);
 
         Self { hash, entries }
     }
@@ -38,20 +51,17 @@ impl Blocklist {
 pub struct BlocklistLoader;
 
 impl BlocklistLoader {
-    async fn load(&self, url: &str) -> Result<String, reqwest::Error> {
+    pub async fn load(&self, url: &str, kind: BlocklistKind) -> Result<Blocklist, reqwest::Error> {
         let req = reqwest::get(url).await?;
-        req.text().await
-    }
-
-    pub async fn load_hostfile(&self, url: &str) -> Result<Blocklist, reqwest::Error> {
-        self.load(url)
-            .await
-            .map(|value| Blocklist::from_hostfile(&value))
+        let text = req.text().await?;
+        Ok(Blocklist::from_file(&text, kind))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::BlocklistKind;
+
     use super::{hash, parse_hostfile, Blocklist};
 
     #[test]
@@ -79,12 +89,13 @@ mod tests {
 
     #[test]
     fn parse_complex() {
-        let result = Blocklist::from_hostfile(
+        let result = Blocklist::from_file(
             r#"# nope
 0.0.0.0 this.is.blocked
 0.0.0.0 this.is.also.blocked blocked.again
 0.0.0.0 this.is.also.blocked #Youwon'tgetthis
 0.0.0.0 this.is.also.blocked # or this"#,
+            BlocklistKind::EtcHost,
         );
         assert!(result.entries.contains("this.is.blocked"));
         assert!(result.entries.contains("this.is.also.blocked"));
