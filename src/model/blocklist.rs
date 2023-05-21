@@ -18,29 +18,6 @@ WHERE domain = $1"#,
     .await
 }
 
-#[allow(dead_code)]
-struct Blocklist {
-    pub id: u32,
-    pub url: String,
-    pub description: String,
-    pub created_at: u32,
-    pub last_refresh_at: u32,
-    pub last_refresh_hash: String,
-}
-
-impl FromRow<'_, SqliteRow> for Blocklist {
-    fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
-        Ok(Self {
-            id: row.try_get(0)?,
-            url: row.try_get(1)?,
-            description: row.try_get(2)?,
-            created_at: row.try_get(3)?,
-            last_refresh_at: row.try_get(4)?,
-            last_refresh_hash: row.try_get(5)?,
-        })
-    }
-}
-
 pub async fn import<'t>(
     tx: &mut Transaction<'t>,
     url: &str,
@@ -63,11 +40,11 @@ WHERE url = $1 AND last_refresh_hash = $2"#,
         return Ok((0, 0));
     }
     // upsert the blocklist
-    let blocklist_item: Blocklist = sqlx::query_as(
+    let blocklist_id: u32 = sqlx::query_scalar(
         r#"INSERT INTO blocklists (url, description, created_at, last_refresh_at, last_refresh_hash)
 VALUES ($1, $2, UNIXEPOCH(), UNIXEPOCH(), $3)
 ON CONFLICT (url) DO UPDATE SET last_refresh_at = UNIXEPOCH(), last_refresh_hash = $3
-RETURNING id, url, description, created_at, last_refresh_at, last_refresh_hash"#,
+RETURNING id"#,
     )
     .bind(url)
     .bind(description)
@@ -90,7 +67,7 @@ RETURNING id, url, description, created_at, last_refresh_at, last_refresh_hash"#
 
     // removing entries that are not there anymore
     let deleted = sqlx::query("DELETE FROM blocked_domains WHERE domain NOT IN (SELECT domain FROM import_blocked_domains) AND blocklist_id = $1")
-        .bind(blocklist_item.id)
+        .bind(blocklist_id)
         .execute(&mut *tx).await?;
 
     // moving entries from temporary table
@@ -101,7 +78,7 @@ FROM import_blocked_domains
 WHERE true
 ON CONFLICT (blocklist_id, domain) DO NOTHING"#,
     )
-    .bind(blocklist_item.id)
+    .bind(blocklist_id)
     .execute(&mut *tx)
     .await?;
 
@@ -111,6 +88,49 @@ ON CONFLICT (blocklist_id, domain) DO NOTHING"#,
         .await?;
 
     Ok((inserted.rows_affected(), deleted.rows_affected()))
+}
+
+#[derive(Debug)]
+pub struct BlocklistReport {
+    pub id: u32,
+    pub url: String,
+    pub description: String,
+    pub created_at: u32,
+    pub last_refresh_at: u32,
+    pub last_refresh_hash: String,
+    pub domain_count: u32,
+}
+
+impl FromRow<'_, SqliteRow> for BlocklistReport {
+    fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            id: row.try_get(0)?,
+            url: row.try_get(1)?,
+            description: row.try_get(2)?,
+            created_at: row.try_get(3)?,
+            last_refresh_at: row.try_get(4)?,
+            last_refresh_hash: row.try_get(5)?,
+            domain_count: row.try_get(6)?,
+        })
+    }
+}
+
+pub async fn reports<'t>(tx: &mut Transaction<'t>) -> Result<Vec<BlocklistReport>, sqlx::Error> {
+    sqlx::query_as(
+        r#"SELECT
+    blocklists.id,
+    blocklists.url,
+    blocklists.description,
+    blocklists.created_at,
+    blocklists.last_refresh_at,
+    blocklists.last_refresh_hash,
+    count(blocked_domains.domain)
+FROM blocklists
+JOIN blocked_domains ON blocked_domains.blocklist_id = blocklists.id
+GROUP BY blocklists.id"#,
+    )
+    .fetch_all(tx)
+    .await
 }
 
 #[cfg(test)]

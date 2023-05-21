@@ -16,6 +16,7 @@ impl Command {
 #[derive(Debug, Subcommand)]
 enum Action {
     Sync,
+    Print,
 }
 
 impl Action {
@@ -35,7 +36,8 @@ impl Action {
         let mut tx = database.begin().await.expect("couldn't start transaction");
 
         let loader = donos_blocklist_loader::BlocklistLoader::default();
-        for (name, item) in config.blocklist.inner {
+        for (name, item) in config.blocklists.inner {
+            tracing::debug!("start loading {name:?}");
             match loader.load(&item.url, item.kind).await {
                 Ok(result) => {
                     tracing::debug!(
@@ -66,9 +68,40 @@ impl Action {
         );
     }
 
+    async fn run_print(self, config: crate::config::Config) {
+        let database = config
+            .database
+            .build()
+            .await
+            .expect("unable to connect to database");
+        crate::service::database::migrate(&database)
+            .await
+            .expect("unable to migrate the database");
+
+        let mut tx = database.begin().await.expect("couldn't start transaction");
+
+        let reports = crate::model::blocklist::reports(&mut tx)
+            .await
+            .expect("unable to fetch reports");
+
+        if reports.is_empty() {
+            tracing::info!("there is no blocklist in the database");
+        } else {
+            for item in reports {
+                tracing::info!(
+                    "blocklist {} ({}) contains {} domains",
+                    item.id,
+                    item.description,
+                    item.domain_count
+                );
+            }
+        }
+    }
+
     async fn run(self, config: crate::config::Config) {
         match self {
             Self::Sync => self.run_sync(config).await,
+            Self::Print => self.run_print(config).await,
         }
     }
 }

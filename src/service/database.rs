@@ -26,6 +26,7 @@ impl Config {
 
 impl Config {
     pub async fn build(self) -> Result<Pool, sqlx::Error> {
+        tracing::debug!("connecting to database {:?}", self.url);
         sqlx::sqlite::SqlitePoolOptions::new()
             .min_connections(1)
             .connect(&self.url)
