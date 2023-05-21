@@ -7,7 +7,7 @@ pub struct Config {
     #[serde(default)]
     pub lookup: crate::service::lookup::Config,
     #[serde(default)]
-    pub bloacklist: crate::service::blocklist::Config,
+    pub blocklist: crate::service::blocklist::Config,
     #[serde(default)]
     pub dns: crate::cmd::dns::Config,
 }

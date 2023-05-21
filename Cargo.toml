@@ -9,6 +9,7 @@ edition = "2021"
 members = ["./donos-blocklist-loader", "./donos-parser"]
 
 [dependencies]
+donos-blocklist-loader = { path = "./donos-blocklist-loader" }
 donos-parser = { path = "./donos-parser" }
 
 clap = { version = "4.2", features = ["derive"] }

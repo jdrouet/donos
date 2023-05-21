@@ -1,15 +1,5 @@
+use donos_blocklist_loader::BlocklistKind;
 use std::collections::BTreeMap;
-
-#[derive(Debug, serde::Deserialize)]
-pub enum BlocklistKind {
-    EtcHost,
-}
-
-impl Default for BlocklistKind {
-    fn default() -> Self {
-        Self::EtcHost
-    }
-}
 
 #[derive(Debug, serde::Deserialize)]
 pub struct BlocklistItem {

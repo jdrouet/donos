@@ -3,14 +3,15 @@ use std::collections::HashSet;
 
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum BlocklistKind {
-    EtcHost,
+    EtcHosts,
 }
 
 impl BlocklistKind {
     fn parse(self, input: &str) -> HashSet<String> {
         match self {
-            Self::EtcHost => parse_hostfile(input),
+            Self::EtcHosts => parse_hostfile(input),
         }
     }
 }
@@ -48,10 +49,12 @@ impl Blocklist {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct BlocklistLoader;
 
 impl BlocklistLoader {
     pub async fn load(&self, url: &str, kind: BlocklistKind) -> Result<Blocklist, reqwest::Error> {
+        tracing::debug!("loading {url:?}");
         let req = reqwest::get(url).await?;
         let text = req.text().await?;
         Ok(Blocklist::from_file(&text, kind))

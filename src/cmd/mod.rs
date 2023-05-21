@@ -1,8 +1,8 @@
+pub mod blocklist;
 pub mod dns;
 
-use std::path::PathBuf;
-
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -20,6 +20,7 @@ impl Args {
     pub async fn run(self) {
         let config = crate::config::Config::load(&self.config);
         match self.inner {
+            Commands::Blocklist(inner) => inner.run(config).await,
             Commands::Dns(inner) => inner.run(config).await,
         }
     }
@@ -27,5 +28,6 @@ impl Args {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
+    Blocklist(blocklist::Command),
     Dns(dns::Command),
 }
