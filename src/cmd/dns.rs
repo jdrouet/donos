@@ -93,7 +93,7 @@ impl DnsServer {
     async fn new(config: crate::config::Config) -> Result<Self, HandleError> {
         tracing::info!("preparing dns server");
         let database = config.database.build().await?;
-        crate::service::database::migrate(&database).await?;
+        config.database.migrate(&database).await?;
         let lookup = config.lookup.build().await?;
 
         let address = config.dns.address();

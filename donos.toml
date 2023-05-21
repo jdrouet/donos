@@ -1,6 +1,8 @@
 [dns]
+## host for the dns server to listen to (default to 0.0.0.0)
 # host = "0.0.0.0"
-port = 2053
+## port for the dns server to listen to (default to 53)
+# port = 53
 
 [blocklists.abuse]
 url = "https://blocklistproject.github.io/Lists/alt-version/abuse-nl.txt"
@@ -19,7 +21,11 @@ kind = "etc-hosts"
 # kind = "adguard"
 
 [database]
-# url = "sqlite::memory:"
+## path to connect to the database (default to /etc/donos/database.db)
+# url = "/etc/donos/database.db"
+## path to the migrations scripts (default to /etc/donos/migrations)
+# migrations = "/etc/donos/migrations"
 
 [lookup]
+## lookup servers to use to resolve domain names when not in cache
 servers = ["1.1.1.1", "1.0.0.1"]

@@ -26,7 +26,9 @@ impl Action {
             .build()
             .await
             .expect("unable to connect to database");
-        crate::service::database::migrate(&database)
+        config
+            .database
+            .migrate(&database)
             .await
             .expect("unable to migrate the database");
 
@@ -74,7 +76,9 @@ impl Action {
             .build()
             .await
             .expect("unable to connect to database");
-        crate::service::database::migrate(&database)
+        config
+            .database
+            .migrate(&database)
             .await
             .expect("unable to migrate the database");
 

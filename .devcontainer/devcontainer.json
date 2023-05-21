@@ -4,6 +4,11 @@
     "forwardPorts": [
         2053
     ],
+    "containerEnv": {
+        "CONFIG_PATH": "./donos.toml",
+        "DATABASE_MIGRATIONS": "./migrations",
+        "DATABASE_URL": "./database.db"
+    },
     "customizations": {
         // Set *default* container specific settings.json values on container create.
         "settings": {
