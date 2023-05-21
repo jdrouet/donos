@@ -111,3 +111,118 @@ ON CONFLICT (blocklist_id, domain) DO NOTHING"#,
 
     Ok((inserted.rows_affected(), deleted.rows_affected()))
 }
+
+#[cfg(test)]
+mod tests {
+    #[tokio::test]
+    async fn should_import_non_existing() {
+        let pool = crate::service::database::Config::default()
+            .build()
+            .await
+            .unwrap();
+        crate::service::database::migrate(&pool).await.unwrap();
+        let mut tx = pool.begin().await.unwrap();
+
+        let (inserted, deleted) = super::import(
+            &mut tx,
+            "https://example.com/blocklist.txt",
+            "foo",
+            "hash",
+            ["google.com".to_owned(), "duckduckgo.com".to_owned()]
+                .into_iter()
+                .collect(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(inserted, 2);
+        assert_eq!(deleted, 0);
+    }
+
+    #[tokio::test]
+    async fn should_import_with_same_hash() {
+        let pool = crate::service::database::Config::default()
+            .build()
+            .await
+            .unwrap();
+        crate::service::database::migrate(&pool).await.unwrap();
+
+        let mut tx = pool.begin().await.unwrap();
+        let (inserted, deleted) = super::import(
+            &mut tx,
+            "https://example.com/blocklist.txt",
+            "foo",
+            "hash",
+            ["google.com".to_owned(), "duckduckgo.com".to_owned()]
+                .into_iter()
+                .collect(),
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        assert_eq!(inserted, 2);
+        assert_eq!(deleted, 0);
+
+        let mut tx = pool.begin().await.unwrap();
+        let (inserted, deleted) = super::import(
+            &mut tx,
+            "https://example.com/blocklist.txt",
+            "foo",
+            "hash",
+            ["google.com".to_owned(), "duckduckgo.com".to_owned()]
+                .into_iter()
+                .collect(),
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+
+        assert_eq!(inserted, 0);
+        assert_eq!(deleted, 0);
+    }
+
+    #[tokio::test]
+    async fn should_import_with_different_hash() {
+        let pool = crate::service::database::Config::default()
+            .build()
+            .await
+            .unwrap();
+        crate::service::database::migrate(&pool).await.unwrap();
+
+        let mut tx = pool.begin().await.unwrap();
+        let (inserted, deleted) = super::import(
+            &mut tx,
+            "https://example.com/blocklist.txt",
+            "foo",
+            "hash",
+            ["google.com".to_owned(), "duckduckgo.com".to_owned()]
+                .into_iter()
+                .collect(),
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        assert_eq!(inserted, 2);
+        assert_eq!(deleted, 0);
+
+        let mut tx = pool.begin().await.unwrap();
+        let (inserted, deleted) = super::import(
+            &mut tx,
+            "https://example.com/blocklist.txt",
+            "foo",
+            "other hash",
+            [
+                "foo.com".to_owned(),
+                "duckduckgo.com".to_owned(),
+                "bar.com".to_owned(),
+            ]
+            .into_iter()
+            .collect(),
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+
+        assert_eq!(inserted, 2);
+        assert_eq!(deleted, 1);
+    }
+}
