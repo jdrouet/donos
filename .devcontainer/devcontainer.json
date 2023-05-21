@@ -1,0 +1,22 @@
+{
+    "name": "Donos dev environment",
+    "dockerFile": "Dockerfile",
+    "forwardPorts": [
+        2053
+    ],
+    "customizations": {
+        // Set *default* container specific settings.json values on container create.
+        "settings": {
+            "terminal.integrated.shell.linux": "/bin/bash",
+            "lldb.executable": "/usr/bin/lldb"
+        },
+        // Add the IDs of extensions you want installed when the container is created.
+        "extensions": [
+            "rust-lang.rust-analyzer",
+            "bungcip.better-toml",
+            "vadimcn.vscode-lldb",
+            "EditorConfig.EditorConfig",
+            "ms-azuretools.vscode-docker"
+        ]
+    }
+}
