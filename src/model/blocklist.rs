@@ -137,11 +137,9 @@ GROUP BY blocklists.id"#,
 mod tests {
     #[tokio::test]
     async fn should_import_non_existing() {
-        let pool = crate::service::database::Config::default()
-            .build()
-            .await
-            .unwrap();
-        crate::service::database::migrate(&pool).await.unwrap();
+        let config = crate::service::database::Config::test_env();
+        let pool = config.build().await.unwrap();
+        config.migrate(&pool).await.unwrap();
         let mut tx = pool.begin().await.unwrap();
 
         let (inserted, deleted) = super::import(
@@ -161,11 +159,9 @@ mod tests {
 
     #[tokio::test]
     async fn should_import_with_same_hash() {
-        let pool = crate::service::database::Config::default()
-            .build()
-            .await
-            .unwrap();
-        crate::service::database::migrate(&pool).await.unwrap();
+        let config = crate::service::database::Config::test_env();
+        let pool = config.build().await.unwrap();
+        config.migrate(&pool).await.unwrap();
 
         let mut tx = pool.begin().await.unwrap();
         let (inserted, deleted) = super::import(
@@ -203,11 +199,9 @@ mod tests {
 
     #[tokio::test]
     async fn should_import_with_different_hash() {
-        let pool = crate::service::database::Config::default()
-            .build()
-            .await
-            .unwrap();
-        crate::service::database::migrate(&pool).await.unwrap();
+        let config = crate::service::database::Config::test_env();
+        let pool = config.build().await.unwrap();
+        config.migrate(&pool).await.unwrap();
 
         let mut tx = pool.begin().await.unwrap();
         let (inserted, deleted) = super::import(

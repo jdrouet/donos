@@ -32,6 +32,14 @@ impl Config {
 }
 
 impl Config {
+    #[cfg(test)]
+    pub fn test_env() -> Self {
+        Self {
+            url: String::from(":memory:"),
+            migrations: PathBuf::from("./migrations"),
+        }
+    }
+
     pub async fn build(&self) -> Result<Pool, sqlx::Error> {
         tracing::debug!("connecting to database {:?}", self.url);
         let opts = sqlx::sqlite::SqliteConnectOptions::from_str(&self.url)?.create_if_missing(true);
