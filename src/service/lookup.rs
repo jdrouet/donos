@@ -58,10 +58,7 @@ impl LookupService {
 
         let req_buffer = packet.create_buffer()?;
         self.socket
-            .send_to(
-                &req_buffer.buf[0..req_buffer.pos],
-                self.servers[0].0.as_str(),
-            )
+            .send_to(&req_buffer.buf[0..req_buffer.pos], &self.servers[0])
             .await?;
 
         let mut res_buffer = BytePacketBuffer::default();

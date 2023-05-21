@@ -117,7 +117,7 @@ impl DnsServer {
         // We're not interested in the length, but we need to keep track of the
         // source in order to send our reply later on.
         let (_, src) = self.socket.recv_from(&mut req_buffer.buf).await?;
-        tracing::debug!("received from {:?}", src.ip());
+        tracing::debug!("requested by {:?}", src.ip());
 
         // Next, `DnsPacket::from_buffer` is used to parse the raw bytes into
         // a `DnsPacket`.

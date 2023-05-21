@@ -10,7 +10,7 @@ pub async fn is_blocked<'t>(
 ) -> Result<bool, Error> {
     sqlx::query_scalar(
         r#"SELECT COUNT(id) > 0
-FROM blocked_hostnames
+FROM blocked_domains
 WHERE domain = $1"#,
     )
     .bind(domain)
