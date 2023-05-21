@@ -6,17 +6,19 @@ use std::collections::HashSet;
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum BlocklistKind {
     EtcHosts,
+    NoIp,
 }
 
 impl BlocklistKind {
     fn parse(self, input: &str) -> HashSet<String> {
         match self {
-            Self::EtcHosts => parse_hostfile(input),
+            Self::EtcHosts => parse_etchosts(input),
+            Self::NoIp => parse_noip(input),
         }
     }
 }
 
-fn parse_hostfile(input: &str) -> HashSet<String> {
+fn parse_etchosts(input: &str) -> HashSet<String> {
     input
         .split('\n')
         .flat_map(|line| {
@@ -26,6 +28,15 @@ fn parse_hostfile(input: &str) -> HashSet<String> {
                 .filter_map(|(idx, item)| if idx > 0 { Some(item) } else { None })
                 .map(|item| item.to_string())
         })
+        .collect()
+}
+
+fn parse_noip(input: &str) -> HashSet<String> {
+    input
+        .split('\n')
+        .map(|line| line.trim())
+        .filter(|line| !line.starts_with('#'))
+        .map(String::from)
         .collect()
 }
 
@@ -63,14 +74,12 @@ impl BlocklistLoader {
 
 #[cfg(test)]
 mod tests {
-    use crate::BlocklistKind;
-
-    use super::{hash, parse_hostfile, Blocklist};
+    use super::{hash, parse_etchosts, parse_noip, Blocklist, BlocklistKind};
 
     #[test]
-    fn parse_ads_hostfile() {
+    fn parse_ads_etchosts() {
         let data = include_str!("../data/ads.txt");
-        let result = parse_hostfile(data);
+        let result = parse_etchosts(data);
         assert!(result.contains("0.r.msn.com"));
         assert!(result.contains("207.net"));
         assert!(!result.contains("#"));
@@ -78,9 +87,18 @@ mod tests {
     }
 
     #[test]
+    fn parse_ads_noip() {
+        let data = include_str!("../data/ads-noip.txt");
+        let result = parse_noip(data);
+        assert!(result.contains("0.r.msn.com"));
+        assert!(result.contains("207.net"));
+        assert!(!result.contains("#"));
+    }
+
+    #[test]
     fn parse_basic_hostfile() {
         let data = include_str!("../data/basic.txt");
-        let result = parse_hostfile(data);
+        let result = parse_etchosts(data);
         assert!(result.contains("0-app.com"));
         assert!(!result.contains("#"));
         assert!(!result.contains("0.0.0.0"));

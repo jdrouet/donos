@@ -2,9 +2,9 @@
 # host = "0.0.0.0"
 port = 2053
 
-# [blocklists.abuse]
-# url = "https://blocklistproject.github.io/Lists/alt-version/abuse-nl.txt"
-# kind = "no-ip"
+[blocklists.abuse]
+url = "https://blocklistproject.github.io/Lists/alt-version/abuse-nl.txt"
+kind = "no-ip"
 
 [blocklists.ads]
 url = "https://blocklistproject.github.io/Lists/ads.txt"
