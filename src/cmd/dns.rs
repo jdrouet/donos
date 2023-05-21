@@ -83,14 +83,14 @@ impl From<std::io::Error> for HandleError {
     }
 }
 
-pub struct DnsServer {
+struct DnsServer {
     database: Pool,
     lookup: LookupService,
     socket: UdpSocket,
 }
 
 impl DnsServer {
-    pub async fn new(config: crate::config::Config) -> Result<Self, HandleError> {
+    async fn new(config: crate::config::Config) -> Result<Self, HandleError> {
         tracing::info!("preparing dns server");
         let database = config.database.build().await?;
         crate::service::database::migrate(&database).await?;
@@ -212,7 +212,7 @@ impl DnsServer {
         Ok(())
     }
 
-    pub async fn run(&self) {
+    async fn run(&self) {
         tracing::info!("running dns server");
         loop {
             match self.handle().await {

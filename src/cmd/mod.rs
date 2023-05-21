@@ -27,7 +27,7 @@ impl Args {
 }
 
 #[derive(Debug, Subcommand)]
-pub enum Commands {
+enum Commands {
     Blocklist(blocklist::Command),
     Dns(dns::Command),
 }

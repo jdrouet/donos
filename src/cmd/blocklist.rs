@@ -1,11 +1,25 @@
-use clap::Args;
+use clap::{Args, Subcommand};
 
 /// Handle the blocklist in database
 #[derive(Args, Debug)]
-pub struct Command;
+pub struct Command {
+    #[command(subcommand)]
+    action: Action,
+}
 
 impl Command {
     pub async fn run(self, config: crate::config::Config) {
+        self.action.run(config).await
+    }
+}
+
+#[derive(Debug, Subcommand)]
+enum Action {
+    Sync,
+}
+
+impl Action {
+    async fn run_sync(self, config: crate::config::Config) {
         let database = config
             .database
             .build()
@@ -50,5 +64,11 @@ impl Command {
         tracing::info!(
             "inserted {total_inserted} new domains and deleted {total_deleted} existing domains"
         );
+    }
+
+    async fn run(self, config: crate::config::Config) {
+        match self {
+            Self::Sync => self.run_sync(config).await,
+        }
     }
 }
