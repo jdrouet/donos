@@ -95,7 +95,7 @@ impl BytePacketBuffer {
     /// The tricky part: Reading domain names, taking labels into consideration.
     /// Will take something like [3]www[6]google[3]com[0] and append
     /// www.google.com to outstr.
-    pub fn read_qname(&mut self, outstr: &mut String) -> Result<(), ReaderError> {
+    pub fn read_qname(&mut self) -> Result<String, ReaderError> {
         // Since we might encounter jumps, we'll keep track of our position
         // locally as opposed to using the position within the struct. This
         // allows us to move the shared position to a point past our current
@@ -108,10 +108,8 @@ impl BytePacketBuffer {
         let max_jumps = 5;
         let mut jumps_performed = 0;
 
-        // Our delimiter which we append for each label. Since we don't want a
-        // dot at the beginning of the domain name we'll leave it empty for now
-        // and set it to "." at the end of the first iteration.
-        let mut delim = "";
+        let mut sections: Vec<String> = Vec::new();
+
         loop {
             // Dns Packets are untrusted data, so we need to be paranoid. Someone
             // can craft a packet with a cycle in the jump instructions. This guards
@@ -148,6 +146,7 @@ impl BytePacketBuffer {
             // The base scenario, where we're reading a single label and
             // appending it to the output:
             else {
+                let label_index = pos;
                 // Move a single byte forward to move past the length byte.
                 pos += 1;
 
@@ -157,15 +156,12 @@ impl BytePacketBuffer {
                     break;
                 }
 
-                // Append the delimiter to our output buffer first.
-                outstr.push_str(delim);
-
                 // Extract the actual ASCII bytes for this label and append them
                 // to the output buffer.
                 let str_buffer = self.get_range(pos, len as usize)?;
-                outstr.push_str(&String::from_utf8_lossy(str_buffer).to_lowercase());
-
-                delim = ".";
+                let section = String::from_utf8_lossy(str_buffer).to_lowercase();
+                self.labels.insert(label_index, section.clone());
+                sections.push(section);
 
                 // Move forward the full length of the label.
                 pos += len as usize;
@@ -176,6 +172,6 @@ impl BytePacketBuffer {
             self.seek(pos)?;
         }
 
-        Ok(())
+        Ok(sections.join("."))
     }
 }

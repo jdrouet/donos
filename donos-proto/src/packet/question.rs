@@ -73,8 +73,7 @@ impl Question {
     }
 
     pub fn read(buffer: &mut BytePacketBuffer) -> Result<Self, ReaderError> {
-        let mut name = String::new();
-        buffer.read_qname(&mut name)?;
+        let name = buffer.read_qname()?;
         let qtype = QueryType::from_num(buffer.read_u16()?); // qtype
         let qclass = DnsClass::try_from(buffer.read_u16()?)?; // class
 

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub mod reader;
 pub mod writer;
 
@@ -5,6 +7,7 @@ pub mod writer;
 pub struct BytePacketBuffer {
     pub buf: [u8; 512],
     pub pos: usize,
+    labels: HashMap<usize, String>,
 }
 
 impl Default for BytePacketBuffer {
@@ -14,6 +17,7 @@ impl Default for BytePacketBuffer {
         BytePacketBuffer {
             buf: [0; 512],
             pos: 0,
+            labels: HashMap::default(),
         }
     }
 }

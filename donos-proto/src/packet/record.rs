@@ -44,8 +44,7 @@ pub enum Record {
 impl Record {
     pub fn read(buffer: &mut BytePacketBuffer) -> Result<Record, ReaderError> {
         // NAME a domain name to which this resource record pertains.
-        let mut domain = String::new();
-        buffer.read_qname(&mut domain)?;
+        let domain = buffer.read_qname()?;
 
         // TYPE two octets containing one of the RR type codes.
         // This field specifies the meaning of the data in the RDATA field.
@@ -95,34 +94,23 @@ impl Record {
                 Ok(Record::AAAA { domain, addr, ttl })
             }
             QueryType::NS => {
-                let mut ns = String::new();
-                buffer.read_qname(&mut ns)?;
+                let host = buffer.read_qname()?;
 
-                Ok(Record::NS {
-                    domain,
-                    host: ns,
-                    ttl,
-                })
+                Ok(Record::NS { domain, host, ttl })
             }
             QueryType::CNAME => {
-                let mut cname = String::new();
-                buffer.read_qname(&mut cname)?;
+                let host = buffer.read_qname()?;
 
-                Ok(Record::CNAME {
-                    domain,
-                    host: cname,
-                    ttl,
-                })
+                Ok(Record::CNAME { domain, host, ttl })
             }
             QueryType::MX => {
                 let priority = buffer.read_u16()?;
-                let mut mx = String::new();
-                buffer.read_qname(&mut mx)?;
+                let host = buffer.read_qname()?;
 
                 Ok(Record::MX {
                     domain,
                     priority,
-                    host: mx,
+                    host,
                     ttl,
                 })
             }
