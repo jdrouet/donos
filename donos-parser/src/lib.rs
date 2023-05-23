@@ -29,9 +29,9 @@ mod tests {
         );
 
         let packet = crate::packet::DnsPacket::try_from(buffer).unwrap();
-        assert_eq!(packet.header.id, 38005);
-        assert!(packet.header.recursion_desired);
-        assert!(!packet.header.truncated_message);
+        assert_eq!(packet.header.inner.id, 38005);
+        assert!(packet.header.inner.recursion_desired);
+        assert!(!packet.header.inner.truncated_message);
 
         assert_eq!(packet.questions.len(), 1);
         assert_eq!(packet.questions[0].name, "google.com");

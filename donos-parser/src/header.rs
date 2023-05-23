@@ -37,7 +37,7 @@ impl TryFrom<u8> for ResponseCode {
 }
 
 #[derive(Clone, Debug)]
-pub struct DnsHeader {
+pub struct DnsPartialHeader {
     /// A 16 bit identifier assigned by the program that
     /// generates any kind of query.  This identifier is copied
     /// the corresponding reply and can be used by the requester
@@ -79,18 +79,9 @@ pub struct DnsHeader {
     /// RA Recursion Available - this be is set or cleared in a response,
     /// and denotes whether recursive query support is available in the name server.
     pub recursion_available: bool, // 1 bit
-
-    /// QDCOUNT an unsigned 16 bit integer specifying the number of entries in the question section.
-    pub questions: u16, // 16 bits
-    /// ANCOUNT an unsigned 16 bit integer specifying the number of resource records in the answer section.
-    pub answers: u16, // 16 bits
-    /// NSCOUNT an unsigned 16 bit integer specifying the number of name server resource records in the authority records section.
-    pub authoritative_entries: u16, // 16 bits
-    /// ARCOUNT an unsigned 16 bit integer specifying the number of resource records in the additional records section.
-    pub resource_entries: u16, // 16 bits
 }
 
-impl Default for DnsHeader {
+impl Default for DnsPartialHeader {
     fn default() -> Self {
         Self {
             id: 0,
@@ -106,26 +97,16 @@ impl Default for DnsHeader {
             authed_data: false,
             z: false,
             recursion_available: false,
-
-            questions: 0,
-            answers: 0,
-            authoritative_entries: 0,
-            resource_entries: 0,
         }
     }
 }
 
-impl DnsHeader {
+impl DnsPartialHeader {
     pub fn read(buffer: &mut BytePacketBuffer) -> Result<Self, ReaderError> {
         let id = buffer.read_u16()?;
 
         let head = buffer.read()?;
         let tail = buffer.read()?;
-
-        let questions = buffer.read_u16()?;
-        let answers = buffer.read_u16()?;
-        let authoritative_entries = buffer.read_u16()?;
-        let resource_entries = buffer.read_u16()?;
 
         Ok(Self {
             id,
@@ -139,10 +120,6 @@ impl DnsHeader {
             authed_data: (tail & (1 << 5)) > 0,
             z: (tail & (1 << 6)) > 0,
             recursion_available: (tail & (1 << 7)) > 0,
-            questions,
-            answers,
-            authoritative_entries,
-            resource_entries,
         })
     }
 
@@ -164,6 +141,44 @@ impl DnsHeader {
                 | ((self.z as u8) << 6)
                 | ((self.recursion_available as u8) << 7),
         )?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct DnsHeader {
+    pub inner: DnsPartialHeader,
+    /// QDCOUNT an unsigned 16 bit integer specifying the number of entries in the question section.
+    pub questions: u16, // 16 bits
+    /// ANCOUNT an unsigned 16 bit integer specifying the number of resource records in the answer section.
+    pub answers: u16, // 16 bits
+    /// NSCOUNT an unsigned 16 bit integer specifying the number of name server resource records in the authority records section.
+    pub authoritative_entries: u16, // 16 bits
+    /// ARCOUNT an unsigned 16 bit integer specifying the number of resource records in the additional records section.
+    pub resource_entries: u16, // 16 bits
+}
+
+impl DnsHeader {
+    pub fn read(buffer: &mut BytePacketBuffer) -> Result<Self, ReaderError> {
+        let inner = DnsPartialHeader::read(buffer)?;
+
+        let questions = buffer.read_u16()?;
+        let answers = buffer.read_u16()?;
+        let authoritative_entries = buffer.read_u16()?;
+        let resource_entries = buffer.read_u16()?;
+
+        Ok(Self {
+            inner,
+            questions,
+            answers,
+            authoritative_entries,
+            resource_entries,
+        })
+    }
+
+    pub fn write(&self, buffer: &mut BytePacketBuffer) -> Result<(), WriterError> {
+        self.inner.write(buffer)?;
 
         buffer.write_u16(self.questions)?;
         buffer.write_u16(self.answers)?;
