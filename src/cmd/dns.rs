@@ -1,7 +1,9 @@
 use crate::service::database::{Error as DatabaseError, Pool};
 use crate::service::lookup::LookupService;
 use clap::Args;
-use donos_proto::buffer::{BytePacketBuffer, ReaderError, WriterError};
+use donos_proto::buffer::reader::ReaderError;
+use donos_proto::buffer::writer::WriterError;
+use donos_proto::buffer::BytePacketBuffer;
 use donos_proto::packet::header::ResponseCode;
 use donos_proto::packet::DnsPacket;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};

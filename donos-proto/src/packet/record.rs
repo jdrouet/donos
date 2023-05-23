@@ -1,5 +1,7 @@
 use super::QueryType;
-use crate::buffer::*;
+use crate::buffer::reader::ReaderError;
+use crate::buffer::writer::WriterError;
+use crate::buffer::BytePacketBuffer;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

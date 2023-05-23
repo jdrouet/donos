@@ -1,4 +1,6 @@
-use crate::buffer::{BytePacketBuffer, ReaderError, WriterError};
+use crate::buffer::reader::ReaderError;
+use crate::buffer::writer::WriterError;
+use crate::buffer::BytePacketBuffer;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ResponseCode {

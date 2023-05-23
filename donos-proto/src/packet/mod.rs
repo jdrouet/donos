@@ -2,7 +2,9 @@ pub mod header;
 pub mod question;
 pub mod record;
 
-use crate::buffer::{BytePacketBuffer, ReaderError, WriterError};
+use crate::buffer::reader::ReaderError;
+use crate::buffer::writer::WriterError;
+use crate::buffer::BytePacketBuffer;
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash, Copy)]
 #[allow(clippy::upper_case_acronyms)]

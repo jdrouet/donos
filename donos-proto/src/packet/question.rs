@@ -1,5 +1,7 @@
 use super::QueryType;
-use crate::buffer::{BytePacketBuffer, ReaderError, WriterError};
+use crate::buffer::reader::ReaderError;
+use crate::buffer::writer::WriterError;
+use crate::buffer::BytePacketBuffer;
 
 /// CLASS fields appear in resource records.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
