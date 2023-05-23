@@ -1,14 +1,5 @@
-mod buffer;
-mod header;
-mod packet;
-mod question;
-mod record;
-
-pub use buffer::*;
-pub use header::*;
-pub use packet::*;
-pub use question::*;
-pub use record::*;
+pub mod buffer;
+pub mod packet;
 
 #[cfg(test)]
 mod tests {
@@ -35,16 +26,16 @@ mod tests {
 
         assert_eq!(packet.questions.len(), 1);
         assert_eq!(packet.questions[0].name, "google.com");
-        assert_eq!(packet.questions[0].qtype, crate::question::QueryType::A);
+        assert_eq!(packet.questions[0].qtype, crate::packet::QueryType::A);
 
         assert_eq!(packet.answers.len(), 1);
         assert_eq!(
             packet.answers[0],
-            crate::record::DnsRecord::A(crate::record::DnsRecordA {
+            crate::packet::record::Record::A {
                 domain: String::from("google.com"),
                 addr: Ipv4Addr::new(172, 217, 20, 206),
                 ttl: 8
-            })
+            }
         );
 
         assert!(packet.authorities.is_empty());

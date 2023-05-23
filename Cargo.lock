@@ -449,7 +449,7 @@ dependencies = [
  "clap 4.3.0",
  "config",
  "donos-blocklist-loader",
- "donos-parser",
+ "donos-proto",
  "serde",
  "sqlx",
  "tokio",
@@ -469,7 +469,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "donos-parser"
+name = "donos-proto"
 version = "0.1.0"
 dependencies = [
  "arbitrary",

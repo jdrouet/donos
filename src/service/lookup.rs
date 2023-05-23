@@ -1,4 +1,6 @@
-use donos_parser::{BytePacketBuffer, DnsPacket, DnsQuestion, QueryType};
+use donos_proto::buffer::BytePacketBuffer;
+use donos_proto::packet::question::Question;
+use donos_proto::packet::{DnsPacket, QueryType};
 use std::io::Result;
 use std::sync::atomic::{AtomicU16, Ordering};
 use tokio::net::UdpSocket;
@@ -49,12 +51,12 @@ impl LookupService {
     pub async fn execute(&self, qname: &str, qtype: QueryType) -> Result<DnsPacket> {
         let mut packet = DnsPacket::default();
 
-        packet.header.id = self.index.fetch_add(1, Ordering::SeqCst);
+        packet.header.inner.id = self.index.fetch_add(1, Ordering::SeqCst);
         packet.header.questions = 1;
-        packet.header.recursion_desired = true;
+        packet.header.inner.recursion_desired = true;
         packet
             .questions
-            .push(DnsQuestion::new(qname.to_string(), qtype));
+            .push(Question::new(qname.to_string(), qtype));
 
         let req_buffer = packet.create_buffer()?;
         self.socket

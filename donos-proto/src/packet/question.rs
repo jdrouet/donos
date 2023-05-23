@@ -1,3 +1,4 @@
+use super::QueryType;
 use crate::buffer::{BytePacketBuffer, ReaderError, WriterError};
 
 /// CLASS fields appear in resource records.
@@ -34,48 +35,8 @@ impl TryFrom<u16> for DnsClass {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Hash, Copy)]
-#[allow(clippy::upper_case_acronyms)]
-pub enum QueryType {
-    Unknown(u16),
-    /// a host address
-    A, // 1
-    /// an authoritative name server
-    NS, // 2
-    /// the canonical name for an alias
-    CNAME, // 5
-    /// mail exchange
-    MX, // 15
-    AAAA, // 28
-}
-
-impl QueryType {
-    pub fn into_num(self) -> u16 {
-        match self {
-            QueryType::Unknown(x) => x,
-            QueryType::A => 1,
-            QueryType::NS => 2,
-            QueryType::CNAME => 5,
-            QueryType::MX => 15,
-            QueryType::AAAA => 28,
-        }
-    }
-
-    /// TODO Handle invalid values
-    pub fn from_num(num: u16) -> QueryType {
-        match num {
-            1 => QueryType::A,
-            2 => QueryType::NS,
-            5 => QueryType::CNAME,
-            15 => QueryType::MX,
-            28 => QueryType::AAAA,
-            _ => QueryType::Unknown(num),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DnsQuestion {
+pub struct Question {
     /// QNAME a domain name represented as a sequence of labels,
     /// where each label consists of a length octet followed by that number of octets.
     /// The domain name terminates with the zero length octet for the null label of the root.
@@ -90,7 +51,7 @@ pub struct DnsQuestion {
     pub qclass: DnsClass,
 }
 
-impl Default for DnsQuestion {
+impl Default for Question {
     fn default() -> Self {
         Self {
             name: String::default(),
@@ -100,7 +61,7 @@ impl Default for DnsQuestion {
     }
 }
 
-impl DnsQuestion {
+impl Question {
     pub fn new(name: String, qtype: QueryType) -> Self {
         Self {
             name,
@@ -115,7 +76,7 @@ impl DnsQuestion {
         let qtype = QueryType::from_num(buffer.read_u16()?); // qtype
         let qclass = DnsClass::try_from(buffer.read_u16()?)?; // class
 
-        Ok(DnsQuestion {
+        Ok(Self {
             name,
             qtype,
             qclass,

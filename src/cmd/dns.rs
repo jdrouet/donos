@@ -1,7 +1,9 @@
 use crate::service::database::{Error as DatabaseError, Pool};
 use crate::service::lookup::LookupService;
 use clap::Args;
-use donos_parser::{BytePacketBuffer, DnsPacket, ReaderError, ResponseCode, WriterError};
+use donos_proto::buffer::{BytePacketBuffer, ReaderError, WriterError};
+use donos_proto::packet::header::ResponseCode;
+use donos_proto::packet::DnsPacket;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use tokio::net::UdpSocket;
 
@@ -127,10 +129,10 @@ impl DnsServer {
 
         // Create and initialize the response packet
         let mut packet = DnsPacket::default();
-        packet.header.id = request.header.id;
-        packet.header.recursion_desired = true;
-        packet.header.recursion_available = true;
-        packet.header.response = true;
+        packet.header.inner.id = request.header.inner.id;
+        packet.header.inner.recursion_desired = true;
+        packet.header.inner.recursion_available = true;
+        packet.header.inner.response = true;
 
         // In the normal case, exactly one question is present
         if let Some(question) = request.questions.pop() {
@@ -138,13 +140,13 @@ impl DnsServer {
 
             if crate::model::blocklist::is_blocked(&mut tx, &src.ip(), &question.name).await? {
                 tracing::error!("qname {} is blocked for {src:?}", question.name);
-                packet.header.response_code = ResponseCode::NameError;
+                packet.header.inner.response_code = ResponseCode::NameError;
             } else if let Some(found) =
                 crate::model::record::find(&mut tx, question.qtype, &question.name).await?
             {
                 tracing::debug!("{:?} {} found in cache", question.qtype, question.name);
                 packet.questions.push(question);
-                packet.header.response_code = ResponseCode::NoError;
+                packet.header.inner.response_code = ResponseCode::NoError;
 
                 packet.answers.push(found);
             } else {
@@ -161,7 +163,7 @@ impl DnsServer {
                 match self.lookup.execute(&question.name, question.qtype).await {
                     Ok(result) => {
                         packet.questions.push(question);
-                        packet.header.response_code = result.header.response_code;
+                        packet.header.inner.response_code = result.header.inner.response_code;
 
                         for rec in result.answers {
                             tracing::debug!("answer: {rec:?}");
@@ -184,7 +186,7 @@ impl DnsServer {
                     }
                     Err(error) => {
                         tracing::error!("unable to lookup question: {error:?}");
-                        packet.header.response_code = ResponseCode::ServerFailure;
+                        packet.header.inner.response_code = ResponseCode::ServerFailure;
                     }
                 }
             }
@@ -193,7 +195,7 @@ impl DnsServer {
         // need make sure that a question is actually present. If not, we return `FORMERR`
         // to indicate that the sender made something wrong.
         else {
-            packet.header.response_code = ResponseCode::FormatError;
+            packet.header.inner.response_code = ResponseCode::FormatError;
         }
 
         // The only thing remaining is to encode our response and send it off!

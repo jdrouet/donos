@@ -1,6 +1,6 @@
 #![no_main]
 
-use donos_parser::{BytePacketBuffer, DnsPacket};
+use donos_proto::{BytePacketBuffer, DnsPacket};
 
 libfuzzer_sys::fuzz_target!(|buffer: BytePacketBuffer| {
     let mut buffer = buffer;

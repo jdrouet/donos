@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use donos_parser::{BytePacketBuffer, DnsPacket};
+use donos_proto::{BytePacketBuffer, DnsPacket};
 
 const QUERY_PACKET: &[u8] = include_bytes!("../data/query_packet.bin");
 const RESPONSE_PACKET: &[u8] = include_bytes!("../data/response_packet.bin");

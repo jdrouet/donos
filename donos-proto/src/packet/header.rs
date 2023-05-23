@@ -37,7 +37,7 @@ impl TryFrom<u8> for ResponseCode {
 }
 
 #[derive(Clone, Debug)]
-pub struct DnsPartialHeader {
+pub struct PartialHeader {
     /// A 16 bit identifier assigned by the program that
     /// generates any kind of query.  This identifier is copied
     /// the corresponding reply and can be used by the requester
@@ -81,7 +81,7 @@ pub struct DnsPartialHeader {
     pub recursion_available: bool, // 1 bit
 }
 
-impl Default for DnsPartialHeader {
+impl Default for PartialHeader {
     fn default() -> Self {
         Self {
             id: 0,
@@ -101,7 +101,7 @@ impl Default for DnsPartialHeader {
     }
 }
 
-impl DnsPartialHeader {
+impl PartialHeader {
     pub fn read(buffer: &mut BytePacketBuffer) -> Result<Self, ReaderError> {
         let id = buffer.read_u16()?;
 
@@ -147,8 +147,8 @@ impl DnsPartialHeader {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct DnsHeader {
-    pub inner: DnsPartialHeader,
+pub struct Header {
+    pub inner: PartialHeader,
     /// QDCOUNT an unsigned 16 bit integer specifying the number of entries in the question section.
     pub questions: u16, // 16 bits
     /// ANCOUNT an unsigned 16 bit integer specifying the number of resource records in the answer section.
@@ -159,9 +159,9 @@ pub struct DnsHeader {
     pub resource_entries: u16, // 16 bits
 }
 
-impl DnsHeader {
+impl Header {
     pub fn read(buffer: &mut BytePacketBuffer) -> Result<Self, ReaderError> {
-        let inner = DnsPartialHeader::read(buffer)?;
+        let inner = PartialHeader::read(buffer)?;
 
         let questions = buffer.read_u16()?;
         let answers = buffer.read_u16()?;

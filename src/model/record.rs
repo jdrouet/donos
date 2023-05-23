@@ -1,8 +1,6 @@
 use crate::service::database::{Error, Transaction};
-use donos_parser::{
-    DnsRecord, DnsRecordA, DnsRecordAAAA, DnsRecordCNAME, DnsRecordMX, DnsRecordNS,
-    DnsRecordUnknown, QueryType,
-};
+use donos_proto::packet::record::Record;
+use donos_proto::packet::QueryType;
 use sqlx::sqlite::SqliteRow;
 use sqlx::{FromRow, Row};
 
@@ -26,7 +24,7 @@ impl FromRow<'_, SqliteRow> for FoundRecord {
     }
 }
 
-impl TryFrom<FoundRecord> for DnsRecord {
+impl TryFrom<FoundRecord> for Record {
     type Error = Error;
 
     fn try_from(value: FoundRecord) -> Result<Self, Self::Error> {
@@ -36,45 +34,45 @@ impl TryFrom<FoundRecord> for DnsRecord {
                 let addr = value.host.parse().map_err(|_err| Error::TypeNotFound {
                     type_name: "Ipv4Addr".into(),
                 })?;
-                Ok(DnsRecord::A(DnsRecordA {
+                Ok(Record::A {
                     domain: value.domain,
                     addr,
                     ttl: value.ttl,
-                }))
+                })
             }
             QueryType::AAAA => {
                 let addr = value.host.parse().map_err(|_err| Error::TypeNotFound {
                     type_name: "Ipv6Addr".into(),
                 })?;
-                Ok(DnsRecord::AAAA(DnsRecordAAAA {
+                Ok(Record::AAAA {
                     domain: value.domain,
                     addr,
                     ttl: value.ttl,
-                }))
+                })
             }
-            QueryType::CNAME => Ok(DnsRecord::CNAME(DnsRecordCNAME {
+            QueryType::CNAME => Ok(Record::CNAME {
                 domain: value.domain,
                 host: value.host,
                 ttl: value.ttl,
-            })),
-            QueryType::MX => Ok(DnsRecord::MX(DnsRecordMX {
+            }),
+            QueryType::MX => Ok(Record::MX {
                 domain: value.domain,
                 host: value.host,
                 ttl: value.ttl,
                 priority: value.priority,
-            })),
-            QueryType::NS => Ok(DnsRecord::NS(DnsRecordNS {
+            }),
+            QueryType::NS => Ok(Record::NS {
                 domain: value.domain,
                 host: value.host,
                 ttl: value.ttl,
-            })),
+            }),
             // this should be unreachable
-            QueryType::Unknown(qtype) => Ok(DnsRecord::Unknown(DnsRecordUnknown {
+            QueryType::Unknown(qtype) => Ok(Record::Unknown {
                 domain: value.domain,
                 qtype,
                 data_len: 0,
                 ttl: value.ttl,
-            })),
+            }),
         }
     }
 }
@@ -83,7 +81,7 @@ pub async fn find<'t>(
     tx: &mut Transaction<'t>,
     qtype: QueryType,
     domain: &str,
-) -> Result<Option<DnsRecord>, Error> {
+) -> Result<Option<Record>, Error> {
     let record: Option<FoundRecord> = sqlx::query_as(
         r#"SELECT
     query_type,
@@ -101,15 +99,15 @@ AND created_at + ttl > UNIXEPOCH()"#,
     .fetch_optional(tx)
     .await?;
     if let Some(record) = record {
-        Ok(Some(DnsRecord::try_from(record)?))
+        Ok(Some(Record::try_from(record)?))
     } else {
         Ok(None)
     }
 }
 
-pub async fn persist<'t>(tx: &mut Transaction<'t>, record: &DnsRecord) -> Result<(), Error> {
+pub async fn persist<'t>(tx: &mut Transaction<'t>, record: &Record) -> Result<(), Error> {
     match record {
-        DnsRecord::A(DnsRecordA { domain, addr, ttl }) => {
+        Record::A { domain, addr, ttl } => {
             sqlx::query(
                 r#"INSERT INTO dns_records (query_type, domain, host, ttl, created_at)
 VALUES ($1, $2, $3, $4, UNIXEPOCH())
