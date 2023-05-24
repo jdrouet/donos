@@ -7,7 +7,7 @@ pub mod writer;
 pub struct BytePacketBuffer {
     pub buf: [u8; 512],
     pub pos: usize,
-    labels: HashMap<usize, String>,
+    reading_labels: HashMap<usize, String>,
     writing_labels: HashMap<String, usize>,
 }
 
@@ -18,7 +18,7 @@ impl Default for BytePacketBuffer {
         BytePacketBuffer {
             buf: [0; 512],
             pos: 0,
-            labels: HashMap::default(),
+            reading_labels: HashMap::default(),
             writing_labels: HashMap::default(),
         }
     }

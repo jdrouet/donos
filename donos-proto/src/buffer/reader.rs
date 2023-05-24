@@ -116,7 +116,7 @@ impl BytePacketBuffer {
             let b2 = self.get(position + 1)? as u16;
             let offset = ((((length as u16) ^ 0xC0) << 8) | b2) as usize;
 
-            let label = if let Some(label) = self.labels.get(&offset) {
+            let label = if let Some(label) = self.reading_labels.get(&offset) {
                 label.to_owned()
             } else {
                 let (label, _) = self.recursive_read_qname(offset, jumps_count + 1)?;
@@ -145,7 +145,7 @@ impl BytePacketBuffer {
             } else {
                 format!("{label}.{next_label}")
             };
-            self.labels.insert(position, label.clone());
+            self.reading_labels.insert(position, label.clone());
             Ok((label, next_position))
         }
     }
