@@ -10,7 +10,7 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 
-[dependencies.donos-parser]
+[dependencies.donos-proto]
 path = ".."
 features = ["fuzzing"]
 

@@ -32,18 +32,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "donos-parser"
-version = "0.1.0"
-dependencies = [
- "arbitrary",
-]
-
-[[package]]
 name = "donos-parser-fuzz"
 version = "0.0.0"
 dependencies = [
- "donos-parser",
+ "donos-proto",
  "libfuzzer-sys",
+]
+
+[[package]]
+name = "donos-proto"
+version = "0.1.0"
+dependencies = [
+ "arbitrary",
 ]
 
 [[package]]
