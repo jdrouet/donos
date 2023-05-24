@@ -1,6 +1,8 @@
 use super::BytePacketBuffer;
 
-#[derive(Debug)]
+const MAX_JUMP: usize = 5;
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum ReaderError {
     EndOfBuffer,
     TooManyJumps(usize),
@@ -57,7 +59,7 @@ impl BytePacketBuffer {
     }
 
     /// Get a single byte, without changing the buffer position
-    fn get(&mut self, pos: usize) -> Result<u8, ReaderError> {
+    fn get(&self, pos: usize) -> Result<u8, ReaderError> {
         if pos >= 512 {
             return Err(ReaderError::EndOfBuffer);
         }
@@ -90,88 +92,137 @@ impl BytePacketBuffer {
         Ok(res)
     }
 
+    fn recursive_read_qname(
+        &mut self,
+        position: usize,
+        jumps_count: usize,
+    ) -> Result<(String, usize), ReaderError> {
+        // Dns Packets are untrusted data, so we need to be paranoid.
+        // Someone can craft a packet with a cycle in the jump instructions.
+        // This guards against such packets.
+        if jumps_count > MAX_JUMP {
+            return Err(ReaderError::TooManyJumps(MAX_JUMP));
+        }
+
+        // At this point, we're always at the beginning of a label. Recall
+        // that labels start with a length byte.
+        let length = self.get(position)?;
+
+        // If `length` has the two most significant bit are set, it represents a
+        // jump to some other offset in the packet:
+        if (length & 0xC0) == 0xC0 {
+            // Read another byte, calculate offset and perform the jump by
+            // updating our local position variable
+            let b2 = self.get(position + 1)? as u16;
+            let offset = ((((length as u16) ^ 0xC0) << 8) | b2) as usize;
+
+            let label = if let Some(label) = self.labels.get(&offset) {
+                label.to_owned()
+            } else {
+                let (label, _) = self.recursive_read_qname(offset, jumps_count + 1)?;
+                label
+            };
+            Ok((label, position + 2))
+        } else if length == 0 {
+            // Domain names are terminated by an empty label of length 0,
+            // so if the length is zero we're done.
+            Ok((String::new(), position + 1))
+        } else {
+            // The base scenario, where we're reading a single label and
+            // appending it to the output
+            let length = length as usize;
+            // Extract the actual ASCII bytes for this label and append them
+            // to the output buffer.
+            let str_buffer = self.get_range(position + 1, length)?;
+            let label = String::from_utf8_lossy(str_buffer).to_lowercase();
+
+            let next_position = position + 1 + length;
+            let (next_label, next_position) =
+                self.recursive_read_qname(next_position, jumps_count)?;
+
+            let label = if next_label.is_empty() {
+                label
+            } else {
+                format!("{label}.{next_label}")
+            };
+            self.labels.insert(position, label.clone());
+            Ok((label, next_position))
+        }
+    }
+
     /// Read a qname
     ///
     /// The tricky part: Reading domain names, taking labels into consideration.
     /// Will take something like [3]www[6]google[3]com[0] and append
     /// www.google.com to outstr.
     pub fn read_qname(&mut self) -> Result<String, ReaderError> {
-        // Since we might encounter jumps, we'll keep track of our position
-        // locally as opposed to using the position within the struct. This
-        // allows us to move the shared position to a point past our current
-        // qname, while keeping track of our progress on the current qname
-        // using this variable.
-        let mut pos = self.pos();
+        let (label, position) = self.recursive_read_qname(self.pos(), 0)?;
+        self.seek(position)?;
+        Ok(label)
+    }
+}
 
-        // track whether or not we've jumped
-        let mut jumped = false;
-        let max_jumps = 5;
-        let mut jumps_performed = 0;
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn should_read_empty_qname() {
+        let mut buffer = crate::buffer::BytePacketBuffer::default();
+        buffer.buf[0] = 0;
+        let result = buffer.read_qname().unwrap();
+        assert!(result.is_empty());
+    }
 
-        let mut sections: Vec<String> = Vec::new();
+    #[test]
+    fn should_read_simple_qname() {
+        let mut buffer = crate::buffer::BytePacketBuffer::default();
+        buffer.buf[0] = 2;
+        buffer.buf[1] = b'a';
+        buffer.buf[2] = b'b';
+        buffer.buf[3] = 0;
+        let result = buffer.read_qname().unwrap();
+        assert_eq!(result, "ab");
+    }
 
-        loop {
-            // Dns Packets are untrusted data, so we need to be paranoid. Someone
-            // can craft a packet with a cycle in the jump instructions. This guards
-            // against such packets.
-            if jumps_performed > max_jumps {
-                return Err(ReaderError::TooManyJumps(max_jumps));
-            }
+    #[test]
+    fn should_read_multiple_section_qname() {
+        let mut buffer = crate::buffer::BytePacketBuffer::default();
+        buffer.buf[0] = 2;
+        buffer.buf[1] = b'a';
+        buffer.buf[2] = b'b';
+        buffer.buf[3] = 1;
+        buffer.buf[4] = b'c';
+        buffer.buf[5] = 1;
+        buffer.buf[6] = b'd';
+        let result = buffer.read_qname().unwrap();
+        assert_eq!(result, "ab.c.d");
+    }
 
-            // At this point, we're always at the beginning of a label. Recall
-            // that labels start with a length byte.
-            let len = self.get(pos)?;
+    #[test]
+    fn should_fail_read_qname_with_loop() {
+        let mut buffer = crate::buffer::BytePacketBuffer::default();
+        buffer.buf[0] = 2;
+        buffer.buf[1] = b'a';
+        buffer.buf[2] = b'b';
+        buffer.buf[3] = 0xC0;
+        let error = buffer.read_qname().unwrap_err();
+        assert_eq!(error, super::ReaderError::TooManyJumps(5));
+    }
 
-            // If len has the two most significant bit are set, it represents a
-            // jump to some other offset in the packet:
-            if (len & 0xC0) == 0xC0 {
-                // Update the buffer position to a point past the current
-                // label. We don't need to touch it any further.
-                if !jumped {
-                    self.seek(pos + 2)?;
-                }
-
-                // Read another byte, calculate offset and perform the jump by
-                // updating our local position variable
-                let b2 = self.get(pos + 1)? as u16;
-                let offset = (((len as u16) ^ 0xC0) << 8) | b2;
-                pos = offset as usize;
-
-                // Indicate that a jump was performed.
-                jumped = true;
-                jumps_performed += 1;
-
-                continue;
-            }
-            // The base scenario, where we're reading a single label and
-            // appending it to the output:
-            else {
-                let label_index = pos;
-                // Move a single byte forward to move past the length byte.
-                pos += 1;
-
-                // Domain names are terminated by an empty label of length 0,
-                // so if the length is zero we're done.
-                if len == 0 {
-                    break;
-                }
-
-                // Extract the actual ASCII bytes for this label and append them
-                // to the output buffer.
-                let str_buffer = self.get_range(pos, len as usize)?;
-                let section = String::from_utf8_lossy(str_buffer).to_lowercase();
-                self.labels.insert(label_index, section.clone());
-                sections.push(section);
-
-                // Move forward the full length of the label.
-                pos += len as usize;
-            }
-        }
-
-        if !jumped {
-            self.seek(pos)?;
-        }
-
-        Ok(sections.join("."))
+    #[test]
+    fn should_read_qname_with_redirect() {
+        println!("{}", 0xC2 ^ 0x00);
+        let mut buffer = crate::buffer::BytePacketBuffer::default();
+        buffer.buf[0] = 1;
+        buffer.buf[1] = b'b';
+        buffer.buf[2] = 1;
+        buffer.buf[3] = b'c';
+        buffer.buf[4] = 0;
+        buffer.buf[5] = 1;
+        buffer.buf[6] = b'd';
+        buffer.buf[7] = 0xC0;
+        buffer.buf[8] = 2;
+        buffer.pos = 5;
+        let result = buffer.read_qname().unwrap();
+        assert_eq!(result, "d.c");
     }
 }
