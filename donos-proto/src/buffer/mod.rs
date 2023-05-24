@@ -8,6 +8,7 @@ pub struct BytePacketBuffer {
     pub buf: [u8; 512],
     pub pos: usize,
     labels: HashMap<usize, String>,
+    writing_labels: HashMap<String, usize>,
 }
 
 impl Default for BytePacketBuffer {
@@ -18,6 +19,7 @@ impl Default for BytePacketBuffer {
             buf: [0; 512],
             pos: 0,
             labels: HashMap::default(),
+            writing_labels: HashMap::default(),
         }
     }
 }
