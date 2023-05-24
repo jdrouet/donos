@@ -15,7 +15,7 @@ mod tests {
     fn should_read_response_packet() {
         let mut buffer = crate::buffer::BytePacketBuffer::default();
         copy_to(
-            include_bytes!("../data/response_packet.bin"),
+            include_bytes!("../data/googlecom_response.bin"),
             &mut buffer.buf,
         );
 
