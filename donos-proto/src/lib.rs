@@ -19,7 +19,7 @@ mod tests {
             &mut buffer.buf,
         );
 
-        let packet = crate::packet::DnsPacket::try_from(buffer).unwrap();
+        let packet = crate::packet::DnsPacket::try_from(buffer.clone()).unwrap();
         assert_eq!(packet.header.inner.id, 38005);
         assert!(packet.header.inner.recursion_desired);
         assert!(!packet.header.inner.truncated_message);
@@ -40,5 +40,9 @@ mod tests {
 
         assert!(packet.authorities.is_empty());
         assert!(packet.resources.is_empty());
+
+        let mut packet = packet;
+        let created = packet.create_buffer().unwrap();
+        assert_eq!(buffer.buf, created.buf);
     }
 }

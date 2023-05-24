@@ -4,6 +4,7 @@ pub mod reader;
 pub mod writer;
 
 #[cfg_attr(feature = "fuzzing", derive(arbitrary::Arbitrary, Debug, Clone))]
+#[cfg_attr(test, derive(Clone))]
 pub struct BytePacketBuffer {
     pub buf: [u8; 512],
     pub pos: usize,
