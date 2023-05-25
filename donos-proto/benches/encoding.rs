@@ -1,8 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use donos_proto::{BytePacketBuffer, DnsPacket};
+use donos_proto::{buffer::BytePacketBuffer, packet::DnsPacket};
 
-const QUERY_PACKET: &[u8] = include_bytes!("../data/query_packet.bin");
-const RESPONSE_PACKET: &[u8] = include_bytes!("../data/response_packet.bin");
+const QUERY_PACKET: &[u8] = include_bytes!("../data/googlecom_query.bin");
+const RESPONSE_PACKET: &[u8] = include_bytes!("../data/googlecom_response.bin");
 
 fn copy_to(source: &[u8], target: &mut [u8]) {
     for (idx, val) in source.iter().enumerate() {
