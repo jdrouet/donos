@@ -10,7 +10,7 @@ keywords = ["dns"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["./donos-blocklist-loader", "./donos-proto"]
+members = ["./donos-blocklist-loader", "./donos-proto", "./donos-resolver"]
 
 [dependencies]
 donos-blocklist-loader = { path = "./donos-blocklist-loader" }
