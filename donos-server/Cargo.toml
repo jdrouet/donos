@@ -1,0 +1,19 @@
+[package]
+name = "donos-server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-stream = { version = "0.3" }
+async-trait = { version = "0.1" }
+crossbeam-channel = { version = "0.5" }
+futures = { version = "0.3" }
+futures-core = { version = "0.3" }
+tokio = { version = "1.0", default-features = false, features = [
+    "macros",
+    "net",
+    "rt-multi-thread",
+] }
+tracing = { version = "0.1" }
