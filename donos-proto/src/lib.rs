@@ -3,12 +3,45 @@ pub mod packet;
 
 #[cfg(test)]
 mod tests {
+    use crate::packet::header::ResponseCode;
     use std::net::Ipv4Addr;
 
     fn copy_to(source: &[u8], target: &mut [u8]) {
         for (idx, val) in source.iter().enumerate() {
             target[idx] = *val;
         }
+    }
+
+    #[test]
+    fn should_read_partial_googlecom_response_packet() {
+        let mut buffer = crate::buffer::BytePacketBuffer::default();
+        copy_to(
+            include_bytes!("../data/partial_googlecom_response.bin"),
+            &mut buffer.buf,
+        );
+
+        let packet = crate::packet::DnsPacket::try_from(buffer.clone()).unwrap();
+        assert_eq!(packet.header.inner.id, 38005);
+        assert!(packet.header.inner.recursion_desired);
+        assert!(!packet.header.inner.truncated_message);
+        assert!(!packet.header.inner.authoritative_answer);
+        assert_eq!(packet.header.inner.opcode, 0);
+        assert!(packet.header.inner.response);
+        assert_eq!(packet.header.inner.response_code, ResponseCode::FormatError);
+        assert!(!packet.header.inner.checking_disabled);
+        assert!(!packet.header.inner.authed_data);
+        assert!(!packet.header.inner.z);
+        assert!(!packet.header.inner.recursion_available);
+
+        assert_eq!(packet.header.questions, 0);
+        assert_eq!(packet.header.answers, 0);
+        assert_eq!(packet.header.authoritative_entries, 0);
+        assert_eq!(packet.header.resource_entries, 0);
+
+        assert!(packet.questions.is_empty());
+        assert!(packet.answers.is_empty());
+        assert!(packet.authorities.is_empty());
+        assert!(packet.resources.is_empty());
     }
 
     #[test]

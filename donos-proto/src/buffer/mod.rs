@@ -26,6 +26,13 @@ impl Default for BytePacketBuffer {
 }
 
 impl BytePacketBuffer {
+    pub fn new(buffer: [u8; 512]) -> Self {
+        Self {
+            buf: buffer,
+            ..Default::default()
+        }
+    }
+
     /// Current position within buffer
     pub fn pos(&self) -> usize {
         self.pos
