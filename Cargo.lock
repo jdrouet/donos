@@ -468,6 +468,7 @@ dependencies = [
 name = "donos"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "clap 4.3.0",
  "config",
  "donos-blocklist-loader",

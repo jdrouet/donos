@@ -22,6 +22,7 @@ donos-blocklist-loader = { path = "./donos-blocklist-loader" }
 donos-proto = { path = "./donos-proto" }
 donos-server = { path = "./donos-server" }
 
+async-trait = { version = "0.1" }
 clap = { version = "4.2", features = ["derive", "env"] }
 config = { version = "0.13", default-features = false, features = ["toml"] }
 futures = { version = "0.3" }
