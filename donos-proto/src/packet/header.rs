@@ -39,7 +39,7 @@ impl TryFrom<u8> for ResponseCode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PartialHeader {
+pub struct Header {
     /// A 16 bit identifier assigned by the program that
     /// generates any kind of query.  This identifier is copied
     /// the corresponding reply and can be used by the requester
@@ -83,7 +83,7 @@ pub struct PartialHeader {
     pub recursion_available: bool, // 1 bit
 }
 
-impl Default for PartialHeader {
+impl Default for Header {
     fn default() -> Self {
         Self {
             id: 0,
@@ -103,7 +103,7 @@ impl Default for PartialHeader {
     }
 }
 
-impl PartialHeader {
+impl Header {
     /// Reads the first 4 bytes
     pub fn read(buffer: &mut BytePacketBuffer) -> Result<Self, ReaderError> {
         let id = buffer.read_u16()?;
@@ -149,74 +149,23 @@ impl PartialHeader {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Header {
-    // 4 first bytes [0,1,2,3]
-    pub inner: PartialHeader,
-    /// QDCOUNT an unsigned 16 bit integer specifying the number of entries in the question section.
-    pub questions: u16, // 16 bits [4,5]
-    /// ANCOUNT an unsigned 16 bit integer specifying the number of resource records in the answer section.
-    pub answers: u16, // 16 bits [6,7]
-    /// NSCOUNT an unsigned 16 bit integer specifying the number of name server resource records in the authority records section.
-    pub authoritative_entries: u16, // 16 bits [8,9]
-    /// ARCOUNT an unsigned 16 bit integer specifying the number of resource records in the additional records section.
-    pub resource_entries: u16, // 16 bits [10,11]
-}
-
-impl Header {
-    /// Reads the 12 first bytes
-    pub fn read(buffer: &mut BytePacketBuffer) -> Result<Self, ReaderError> {
-        let inner = PartialHeader::read(buffer)?;
-
-        let questions = buffer.read_u16()?;
-        let answers = buffer.read_u16()?;
-        let authoritative_entries = buffer.read_u16()?;
-        let resource_entries = buffer.read_u16()?;
-
-        Ok(Self {
-            inner,
-            questions,
-            answers,
-            authoritative_entries,
-            resource_entries,
-        })
-    }
-
-    pub fn write(&self, buffer: &mut BytePacketBuffer) -> Result<(), WriterError> {
-        self.inner.write(buffer)?;
-
-        buffer.write_u16(self.questions)?;
-        buffer.write_u16(self.answers)?;
-        buffer.write_u16(self.authoritative_entries)?;
-        buffer.write_u16(self.resource_entries)?;
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     #[test]
     #[ignore = "only used when generating packets"]
     fn should_write_empty_packet() {
         let header = super::Header {
-            inner: super::PartialHeader {
-                id: 1,
-                recursion_desired: true,
-                truncated_message: false,
-                authoritative_answer: true,
-                opcode: 0,
-                response: false,
-                response_code: super::ResponseCode::NoError,
-                checking_disabled: false,
-                authed_data: false,
-                z: false,
-                recursion_available: true,
-            },
-            questions: 0,
-            answers: 0,
-            authoritative_entries: 0,
-            resource_entries: 0,
+            id: 1,
+            recursion_desired: true,
+            truncated_message: false,
+            authoritative_answer: true,
+            opcode: 0,
+            response: false,
+            response_code: super::ResponseCode::NoError,
+            checking_disabled: false,
+            authed_data: false,
+            z: false,
+            recursion_available: true,
         };
         let mut buffer = crate::buffer::BytePacketBuffer::default();
         header.write(&mut buffer).unwrap();

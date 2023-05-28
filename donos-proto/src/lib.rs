@@ -21,22 +21,17 @@ mod tests {
         );
 
         let packet = crate::packet::DnsPacket::try_from(buffer.clone()).unwrap();
-        assert_eq!(packet.header.inner.id, 38005);
-        assert!(packet.header.inner.recursion_desired);
-        assert!(!packet.header.inner.truncated_message);
-        assert!(!packet.header.inner.authoritative_answer);
-        assert_eq!(packet.header.inner.opcode, 0);
-        assert!(packet.header.inner.response);
-        assert_eq!(packet.header.inner.response_code, ResponseCode::FormatError);
-        assert!(!packet.header.inner.checking_disabled);
-        assert!(!packet.header.inner.authed_data);
-        assert!(!packet.header.inner.z);
-        assert!(!packet.header.inner.recursion_available);
-
-        assert_eq!(packet.header.questions, 0);
-        assert_eq!(packet.header.answers, 0);
-        assert_eq!(packet.header.authoritative_entries, 0);
-        assert_eq!(packet.header.resource_entries, 0);
+        assert_eq!(packet.header.id, 38005);
+        assert!(packet.header.recursion_desired);
+        assert!(!packet.header.truncated_message);
+        assert!(!packet.header.authoritative_answer);
+        assert_eq!(packet.header.opcode, 0);
+        assert!(packet.header.response);
+        assert_eq!(packet.header.response_code, ResponseCode::FormatError);
+        assert!(!packet.header.checking_disabled);
+        assert!(!packet.header.authed_data);
+        assert!(!packet.header.z);
+        assert!(!packet.header.recursion_available);
 
         assert!(packet.questions.is_empty());
         assert!(packet.answers.is_empty());
@@ -53,9 +48,9 @@ mod tests {
         );
 
         let packet = crate::packet::DnsPacket::try_from(buffer.clone()).unwrap();
-        assert_eq!(packet.header.inner.id, 38005);
-        assert!(packet.header.inner.recursion_desired);
-        assert!(!packet.header.inner.truncated_message);
+        assert_eq!(packet.header.id, 38005);
+        assert!(packet.header.recursion_desired);
+        assert!(!packet.header.truncated_message);
 
         assert_eq!(packet.questions.len(), 1);
         assert_eq!(packet.questions[0].name, "google.com");
@@ -65,7 +60,6 @@ mod tests {
         assert!(packet.authorities.is_empty());
         assert!(packet.resources.is_empty());
 
-        let mut packet = packet;
         let created = packet.create_buffer().unwrap();
         assert_eq!(buffer.buf, created.buf);
     }
@@ -79,9 +73,9 @@ mod tests {
         );
 
         let packet = crate::packet::DnsPacket::try_from(buffer.clone()).unwrap();
-        assert_eq!(packet.header.inner.id, 38005);
-        assert!(packet.header.inner.recursion_desired);
-        assert!(!packet.header.inner.truncated_message);
+        assert_eq!(packet.header.id, 38005);
+        assert!(packet.header.recursion_desired);
+        assert!(!packet.header.truncated_message);
 
         assert_eq!(packet.questions.len(), 1);
         assert_eq!(packet.questions[0].name, "google.com");
@@ -100,7 +94,6 @@ mod tests {
         assert!(packet.authorities.is_empty());
         assert!(packet.resources.is_empty());
 
-        let mut packet = packet;
         let created = packet.create_buffer().unwrap();
         assert_eq!(buffer.buf, created.buf);
     }
@@ -114,9 +107,9 @@ mod tests {
         );
 
         let packet = crate::packet::DnsPacket::try_from(buffer.clone()).unwrap();
-        assert_eq!(packet.header.inner.id, 45838);
-        assert!(packet.header.inner.recursion_desired);
-        assert!(!packet.header.inner.truncated_message);
+        assert_eq!(packet.header.id, 45838);
+        assert!(packet.header.recursion_desired);
+        assert!(!packet.header.truncated_message);
 
         assert_eq!(packet.questions.len(), 1);
         assert_eq!(packet.questions[0].name, "app.datadoghq.com");
@@ -126,7 +119,6 @@ mod tests {
         assert!(packet.authorities.is_empty());
         assert!(packet.resources.is_empty());
 
-        let mut packet = packet;
         let created = packet.create_buffer().unwrap();
         assert_eq!(buffer.buf, created.buf);
     }
@@ -140,9 +132,9 @@ mod tests {
         );
 
         let packet = crate::packet::DnsPacket::try_from(buffer.clone()).unwrap();
-        assert_eq!(packet.header.inner.id, 45838);
-        assert!(packet.header.inner.recursion_desired);
-        assert!(!packet.header.inner.truncated_message);
+        assert_eq!(packet.header.id, 45838);
+        assert!(packet.header.recursion_desired);
+        assert!(!packet.header.truncated_message);
 
         assert_eq!(packet.questions.len(), 1);
         assert_eq!(packet.questions[0].name, "app.datadoghq.com");
@@ -221,7 +213,6 @@ mod tests {
         assert!(packet.authorities.is_empty());
         assert!(packet.resources.is_empty());
 
-        let mut packet = packet;
         let created = packet.create_buffer().unwrap();
         assert_eq!(buffer.buf, created.buf);
     }

@@ -61,23 +61,28 @@ impl TryFrom<BytePacketBuffer> for DnsPacket {
     fn try_from(mut buffer: BytePacketBuffer) -> Result<Self, Self::Error> {
         let header = header::Header::read(&mut buffer)?;
 
-        let mut questions = Vec::with_capacity(header.questions as usize);
-        for _ in 0..header.questions {
+        let question_count = buffer.read_u16()? as usize;
+        let answer_count = buffer.read_u16()? as usize;
+        let authority_count = buffer.read_u16()? as usize;
+        let resource_count = buffer.read_u16()? as usize;
+
+        let mut questions = Vec::with_capacity(question_count);
+        for _ in 0..question_count {
             questions.push(question::Question::read(&mut buffer)?);
         }
 
-        let mut answers = Vec::with_capacity(header.answers as usize);
-        for _ in 0..header.answers {
+        let mut answers = Vec::with_capacity(answer_count);
+        for _ in 0..answer_count {
             answers.push(record::Record::read(&mut buffer)?);
         }
 
-        let mut authorities = Vec::with_capacity(header.authoritative_entries as usize);
-        for _ in 0..header.authoritative_entries {
+        let mut authorities = Vec::with_capacity(authority_count);
+        for _ in 0..authority_count {
             authorities.push(record::Record::read(&mut buffer)?);
         }
 
-        let mut resources = Vec::with_capacity(header.resource_entries as usize);
-        for _ in 0..header.resource_entries {
+        let mut resources = Vec::with_capacity(resource_count);
+        for _ in 0..resource_count {
             resources.push(record::Record::read(&mut buffer)?);
         }
 
@@ -94,7 +99,7 @@ impl TryFrom<BytePacketBuffer> for DnsPacket {
 impl DnsPacket {
     pub fn create_buffer(&self) -> Result<BytePacketBuffer, WriterError> {
         let mut buffer = BytePacketBuffer::default();
-        self.header.inner.write(&mut buffer)?;
+        self.header.write(&mut buffer)?;
 
         buffer.write_u16(self.questions.len() as u16)?;
         buffer.write_u16(self.answers.len() as u16)?;
