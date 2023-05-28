@@ -17,6 +17,10 @@ members = [
     "./donos-server",
 ]
 
+[features]
+default = []
+generate = []
+
 [dependencies]
 donos-blocklist-loader = { path = "./donos-blocklist-loader" }
 donos-proto = { path = "./donos-proto" }
@@ -43,3 +47,6 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
     "env-filter",
     "fmt",
 ] }
+
+[dev-dependencies]
+similar-asserts = "1.4"

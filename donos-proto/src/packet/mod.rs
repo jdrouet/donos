@@ -46,7 +46,7 @@ impl QueryType {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DnsPacket {
     pub header: header::Header,
     pub questions: Vec<question::Question>,
@@ -92,14 +92,14 @@ impl TryFrom<BytePacketBuffer> for DnsPacket {
 }
 
 impl DnsPacket {
-    pub fn create_buffer(&mut self) -> Result<BytePacketBuffer, WriterError> {
+    pub fn create_buffer(&self) -> Result<BytePacketBuffer, WriterError> {
         let mut buffer = BytePacketBuffer::default();
-        self.header.questions = self.questions.len() as u16;
-        self.header.answers = self.answers.len() as u16;
-        self.header.authoritative_entries = self.authorities.len() as u16;
-        self.header.resource_entries = self.resources.len() as u16;
+        self.header.inner.write(&mut buffer)?;
 
-        self.header.write(&mut buffer)?;
+        buffer.write_u16(self.questions.len() as u16)?;
+        buffer.write_u16(self.answers.len() as u16)?;
+        buffer.write_u16(self.authorities.len() as u16)?;
+        buffer.write_u16(self.resources.len() as u16)?;
 
         for question in &self.questions {
             question.write(&mut buffer)?;

@@ -10,7 +10,7 @@ pub mod sender;
 
 #[async_trait::async_trait]
 pub trait Handler {
-    async fn handle(&self, message: Message) -> Message;
+    async fn handle(&self, message: Message) -> Option<Message>;
 }
 
 pub struct UdpServer<H> {
@@ -32,8 +32,7 @@ impl<H: Handler> UdpServer<H> {
 
         let stream = receiver
             .into_stream()
-            .map(|item| async { self.handler.handle(item).await })
-            .buffer_unordered(64);
+            .filter_map(|item| async { self.handler.handle(item).await });
 
         tokio::pin!(stream);
 

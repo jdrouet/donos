@@ -26,18 +26,23 @@ impl Config {
 }
 
 impl Config {
-    pub async fn build(self) -> Result<LookupService> {
-        LookupService::new(self).await
+    pub async fn build(self) -> Result<RemoteLookupService> {
+        RemoteLookupService::new(self).await
     }
 }
 
-pub struct LookupService {
+#[async_trait::async_trait]
+pub trait LookupService {
+    async fn lookup(&self, qname: &str, qtype: QueryType) -> Result<DnsPacket>;
+}
+
+pub struct RemoteLookupService {
     socket: UdpSocket,
     servers: Vec<(String, u16)>,
     index: AtomicU16,
 }
 
-impl LookupService {
+impl RemoteLookupService {
     async fn new(config: Config) -> Result<Self> {
         let socket = UdpSocket::bind(("0.0.0.0", 43210)).await?;
 
@@ -47,8 +52,11 @@ impl LookupService {
             index: AtomicU16::new(0),
         })
     }
+}
 
-    pub async fn execute(&self, qname: &str, qtype: QueryType) -> Result<DnsPacket> {
+#[async_trait::async_trait]
+impl LookupService for RemoteLookupService {
+    async fn lookup(&self, qname: &str, qtype: QueryType) -> Result<DnsPacket> {
         let mut packet = DnsPacket::default();
 
         packet.header.inner.id = self.index.fetch_add(1, Ordering::SeqCst);
@@ -67,5 +75,39 @@ impl LookupService {
         self.socket.recv_from(&mut res_buffer.buf).await?;
 
         Ok(DnsPacket::try_from(res_buffer)?)
+    }
+}
+
+#[cfg(test)]
+#[derive(Debug, Default)]
+pub struct MockLookupService {
+    inner: std::collections::HashMap<(&'static str, QueryType), DnsPacket>,
+}
+
+#[cfg(test)]
+impl MockLookupService {
+    pub fn with_query(
+        mut self,
+        address: &'static str,
+        qtype: QueryType,
+        packet: DnsPacket,
+    ) -> Self {
+        self.inner.insert((address, qtype), packet);
+        self
+    }
+}
+
+#[cfg(test)]
+#[async_trait::async_trait]
+impl LookupService for MockLookupService {
+    async fn lookup(&self, qname: &str, qtype: QueryType) -> Result<DnsPacket> {
+        if let Some(found) = self.inner.get(&(qname, qtype)) {
+            Ok(found.clone())
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "network issue",
+            ))
+        }
     }
 }

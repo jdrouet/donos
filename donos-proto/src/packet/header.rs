@@ -38,7 +38,7 @@ impl TryFrom<u8> for ResponseCode {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PartialHeader {
     /// A 16 bit identifier assigned by the program that
     /// generates any kind of query.  This identifier is copied
@@ -149,7 +149,7 @@ impl PartialHeader {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Header {
     // 4 first bytes [0,1,2,3]
     pub inner: PartialHeader,

@@ -9,7 +9,7 @@ pub struct Config {
     #[serde(default)]
     pub blocklists: crate::service::blocklist::Config,
     #[serde(default)]
-    pub dns: crate::cmd::dns::Config,
+    pub dns: crate::dns::config::Config,
 }
 
 impl Config {

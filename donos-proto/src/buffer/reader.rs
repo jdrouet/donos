@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::BytePacketBuffer;
 
 const MAX_JUMP: usize = 5;
@@ -9,6 +11,19 @@ pub enum ReaderError {
     InvalidResponseCode(u8),
     InvalidClass(u16),
 }
+
+impl Display for ReaderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::EndOfBuffer => write!(f, "end of buffer"),
+            Self::TooManyJumps(limit) => write!(f, "reached the limit of {limit} jumps"),
+            Self::InvalidResponseCode(code) => write!(f, "invalid response code {code}"),
+            Self::InvalidClass(code) => write!(f, "invalid class {code}"),
+        }
+    }
+}
+
+impl std::error::Error for ReaderError {}
 
 impl From<ReaderError> for std::io::Error {
     fn from(value: ReaderError) -> Self {
