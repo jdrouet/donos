@@ -55,6 +55,48 @@ pub struct DnsPacket {
     pub resources: Vec<record::Record>,
 }
 
+impl DnsPacket {
+    pub fn response_from(request: &Self) -> Self {
+        Self {
+            header: header::Header::response_from(&request.header),
+            questions: request.questions.clone(),
+            ..Default::default()
+        }
+    }
+
+    pub fn new(header: header::Header) -> Self {
+        Self {
+            header,
+            ..Default::default()
+        }
+    }
+
+    pub fn with_question(mut self, question: question::Question) -> Self {
+        self.questions.push(question);
+        self
+    }
+
+    pub fn with_answer(mut self, record: record::Record) -> Self {
+        self.answers.push(record);
+        self
+    }
+
+    pub fn with_answers(mut self, records: Vec<record::Record>) -> Self {
+        self.answers.extend(records);
+        self
+    }
+
+    pub fn with_authority(mut self, record: record::Record) -> Self {
+        self.authorities.push(record);
+        self
+    }
+
+    pub fn with_resource(mut self, record: record::Record) -> Self {
+        self.resources.push(record);
+        self
+    }
+}
+
 impl TryFrom<BytePacketBuffer> for DnsPacket {
     type Error = ReaderError;
 

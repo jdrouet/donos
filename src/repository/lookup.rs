@@ -2,11 +2,14 @@ use donos_proto::buffer::BytePacketBuffer;
 use donos_proto::packet::question::Question;
 use donos_proto::packet::{DnsPacket, QueryType};
 use std::io::Result;
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::sync::atomic::{AtomicU16, Ordering};
 use tokio::net::UdpSocket;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
+    #[serde(default = "Config::default_address")]
+    pub address: SocketAddr,
     #[serde(default = "Config::default_servers")]
     pub servers: Vec<String>,
 }
@@ -14,12 +17,17 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            address: Self::default_address(),
             servers: Self::default_servers(),
         }
     }
 }
 
 impl Config {
+    pub fn default_address() -> SocketAddr {
+        SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 43210))
+    }
+
     pub fn default_servers() -> Vec<String> {
         vec!["1.1.1.1".to_string(), "1.0.0.1".to_string()]
     }
@@ -44,7 +52,7 @@ pub struct RemoteLookupService {
 
 impl RemoteLookupService {
     async fn new(config: Config) -> Result<Self> {
-        let socket = UdpSocket::bind(("0.0.0.0", 43210)).await?;
+        let socket = UdpSocket::bind(config.address).await?;
 
         Ok(Self {
             socket,
@@ -56,12 +64,12 @@ impl RemoteLookupService {
 
 #[async_trait::async_trait]
 impl LookupService for RemoteLookupService {
+    #[tracing::instrument(skip(self))]
     async fn lookup(&self, qname: &str, qtype: QueryType) -> Result<DnsPacket> {
         let mut packet = DnsPacket::default();
 
-        packet.header.inner.id = self.index.fetch_add(1, Ordering::SeqCst);
-        packet.header.questions = 1;
-        packet.header.inner.recursion_desired = true;
+        packet.header.id = self.index.fetch_add(1, Ordering::SeqCst);
+        packet.header.recursion_desired = true;
         packet
             .questions
             .push(Question::new(qname.to_string(), qtype));
@@ -72,7 +80,9 @@ impl LookupService for RemoteLookupService {
             .await?;
 
         let mut res_buffer = BytePacketBuffer::default();
-        self.socket.recv_from(&mut res_buffer.buf).await?;
+        let (size, _) = self.socket.recv_from(&mut res_buffer.buf).await?;
+
+        tracing::debug!("received {size} bytes from server");
 
         Ok(DnsPacket::try_from(res_buffer)?)
     }
@@ -104,10 +114,9 @@ impl LookupService for MockLookupService {
         if let Some(found) = self.inner.get(&(qname, qtype)) {
             Ok(found.clone())
         } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "network issue",
-            ))
+            use std::io::{Error, ErrorKind};
+
+            Err(Error::new(ErrorKind::BrokenPipe, "network issue"))
         }
     }
 }

@@ -1,9 +1,10 @@
 mod common;
 mod dns;
 
-mod cmd;
+// mod cmd;
 mod config;
-mod model;
+// mod model;
+mod repository;
 mod service;
 
 use clap::{Parser, Subcommand};
@@ -43,7 +44,7 @@ impl Args {
     pub async fn run(self) {
         let config = crate::config::Config::load(&self.config_path);
         match self.inner {
-            Commands::Blocklist(inner) => inner.run(config).await,
+            // Commands::Blocklist(inner) => inner.run(config).await,
             Commands::Dns(inner) => inner.run(config).await,
         }
     }
@@ -51,7 +52,7 @@ impl Args {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    Blocklist(crate::cmd::blocklist::Command),
+    // Blocklist(crate::cmd::blocklist::Command),
     Dns(crate::dns::Command),
 }
 

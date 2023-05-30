@@ -83,6 +83,44 @@ pub struct Header {
     pub recursion_available: bool, // 1 bit
 }
 
+impl Header {
+    pub fn question(id: u16) -> Self {
+        Self {
+            id,
+            ..Default::default()
+        }
+    }
+
+    pub fn response(id: u16) -> Self {
+        Self {
+            id,
+            response: true,
+            ..Default::default()
+        }
+    }
+
+    pub fn response_from(request: &Self) -> Self {
+        Self {
+            id: request.id,
+            recursion_desired: request.recursion_desired,
+            truncated_message: false,
+            authoritative_answer: false,
+            opcode: request.opcode,
+            response: true,
+            response_code: ResponseCode::NoError,
+            checking_disabled: false,
+            authed_data: false,
+            z: false,
+            recursion_available: false,
+        }
+    }
+
+    pub fn with_response_code(mut self, value: ResponseCode) -> Self {
+        self.response_code = value;
+        self
+    }
+}
+
 impl Default for Header {
     fn default() -> Self {
         Self {

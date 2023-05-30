@@ -40,9 +40,8 @@ async fn exchange_and_save(name: &str, packet: DnsPacket, port: u16) {
 async fn without_question() {
     let mut packet = DnsPacket::default();
 
-    packet.header.inner.id = 1;
-    packet.header.questions = 0;
-    packet.header.inner.recursion_desired = true;
+    packet.header.id = 1;
+    packet.header.recursion_desired = true;
 
     let buffer = packet.create_buffer().unwrap();
     let response = exchange(&buffer.buf[0..buffer.pos], 43210).await;
@@ -55,9 +54,8 @@ async fn without_question() {
 async fn simple_a_query() {
     let mut packet = DnsPacket::default();
 
-    packet.header.inner.id = 2;
-    packet.header.questions = 1;
-    packet.header.inner.recursion_desired = true;
+    packet.header.id = 2;
+    packet.header.recursion_desired = true;
     packet
         .questions
         .push(Question::new("perdu.com".into(), QueryType::A));
@@ -70,9 +68,8 @@ async fn simple_a_query() {
 async fn simple_cname_query() {
     let mut packet = DnsPacket::default();
 
-    packet.header.inner.id = 3;
-    packet.header.questions = 1;
-    packet.header.inner.recursion_desired = true;
+    packet.header.id = 3;
+    packet.header.recursion_desired = true;
     packet
         .questions
         .push(Question::new("perdu.com".into(), QueryType::CNAME));
@@ -86,9 +83,8 @@ async fn simple_cname_query() {
 async fn multiple_question_query() {
     let mut packet = DnsPacket::default();
 
-    packet.header.inner.id = 4;
-    packet.header.questions = 2;
-    packet.header.inner.recursion_desired = true;
+    packet.header.id = 4;
+    packet.header.recursion_desired = true;
     packet
         .questions
         .push(Question::new("perdu.com".into(), QueryType::A));
@@ -108,9 +104,8 @@ async fn multiple_question_query() {
 async fn multiple_answers_query() {
     let mut packet = DnsPacket::default();
 
-    packet.header.inner.id = 5;
-    packet.header.questions = 1;
-    packet.header.inner.recursion_desired = true;
+    packet.header.id = 5;
+    packet.header.recursion_desired = true;
     packet
         .questions
         .push(Question::new("app.datadoghq.com".into(), QueryType::A));
@@ -123,9 +118,8 @@ async fn multiple_answers_query() {
 async fn undefined_a_query() {
     let mut packet = DnsPacket::default();
 
-    packet.header.inner.id = 6;
-    packet.header.questions = 1;
-    packet.header.inner.recursion_desired = true;
+    packet.header.id = 6;
+    packet.header.recursion_desired = true;
     packet
         .questions
         .push(Question::new("foo.bar.baz".into(), QueryType::A));

@@ -2,12 +2,12 @@ use std::path::Path;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
+    // #[serde(default)]
+    // pub database: crate::service::database::Config,
     #[serde(default)]
-    pub database: crate::service::database::Config,
+    pub lookup: crate::repository::lookup::Config,
     #[serde(default)]
-    pub lookup: crate::service::lookup::Config,
-    #[serde(default)]
-    pub blocklists: crate::service::blocklist::Config,
+    pub blocklists: crate::repository::blocklist::Config,
     #[serde(default)]
     pub dns: crate::dns::config::Config,
 }

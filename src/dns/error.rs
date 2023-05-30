@@ -1,4 +1,4 @@
-use crate::service::database::Error as DatabaseError;
+// use crate::service::database::Error as DatabaseError;
 use donos_proto::buffer::reader::ReaderError;
 use donos_proto::buffer::writer::WriterError;
 use std::fmt::Display;
@@ -7,11 +7,10 @@ use std::fmt::Display;
 pub enum HandleError {
     Blocklist(Box<dyn std::error::Error>),
     Lookup(std::io::Error),
-    Database(DatabaseError),
+    // Database(DatabaseError),
     Writer(WriterError),
     Reader(ReaderError),
     Io(std::io::Error),
-    Blocked,
     NoQuestion,
 }
 
@@ -21,11 +20,11 @@ impl Display for HandleError {
     }
 }
 
-impl From<DatabaseError> for HandleError {
-    fn from(value: DatabaseError) -> Self {
-        Self::Database(value)
-    }
-}
+// impl From<DatabaseError> for HandleError {
+//     fn from(value: DatabaseError) -> Self {
+//         Self::Database(value)
+//     }
+// }
 
 impl From<WriterError> for HandleError {
     fn from(value: WriterError) -> Self {
