@@ -58,7 +58,7 @@ impl DnsHandler {
 
 #[async_trait::async_trait]
 impl donos_server::Handler for DnsHandler {
-    #[tracing::instrument(skip_all, fields(origin = ?message.address))]
+    #[tracing::instrument(skip_all, fields(origin = ?message.address, id = tracing::field::Empty))]
     async fn handle(&self, message: Message) -> Option<Message> {
         let Message {
             address,
@@ -78,6 +78,8 @@ impl donos_server::Handler for DnsHandler {
                 return None;
             }
         };
+
+        tracing::Span::current().record("id", request.header.id);
 
         match self.try_handle(&address, &request).await {
             Ok(packet) => {
