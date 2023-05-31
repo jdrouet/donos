@@ -92,6 +92,10 @@ impl donos_server::Handler for DnsHandler {
                     size: buffer.pos,
                 })
             }
+            Err(HandleError::NoQuestion) => {
+                tracing::debug!("no question where specified");
+                None
+            }
             Err(error) => {
                 tracing::warn!("unable to build response message: {error:?}");
 
@@ -113,10 +117,8 @@ mod tests {
     use donos_proto::packet::{DnsPacket, QueryType};
     use donos_server::{prelude::Message, Handler};
     use similar_asserts::assert_eq;
-    use std::{
-        net::{Ipv4Addr, SocketAddr, SocketAddrV4},
-        sync::Arc,
-    };
+    use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+    use std::sync::Arc;
 
     fn socket_address() -> SocketAddr {
         SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 1, 0, 1), 42))
@@ -124,6 +126,8 @@ mod tests {
 
     #[tokio::test]
     async fn should_resolve_query() {
+        crate::init_logs();
+
         let input_packet = DnsPacket::new(Header::question(1))
             .with_question(Question::new("perdu.com".into(), QueryType::A));
         let input_buffer = input_packet.create_buffer().unwrap();
@@ -162,6 +166,8 @@ mod tests {
 
     #[tokio::test]
     async fn should_block_query() {
+        crate::init_logs();
+
         let input_packet = DnsPacket::new(Header::question(1))
             .with_question(Question::new("www.facebook.com".into(), QueryType::A));
         let input_buffer = input_packet.create_buffer().unwrap();
@@ -198,5 +204,23 @@ mod tests {
         assert_eq!(result.header.id, 1);
         assert!(result.header.response);
         assert_eq!(result.header.response_code, ResponseCode::NameError);
+    }
+
+    #[tokio::test]
+    async fn should_not_answer_if_not_question() {
+        crate::init_logs();
+
+        let input_packet = DnsPacket::new(Header::question(1));
+        let input_buffer = input_packet.create_buffer().unwrap();
+        let input = Message {
+            address: socket_address(),
+            buffer: input_buffer.buf,
+            size: input_buffer.pos,
+        };
+
+        let blocklist = Arc::new(MockBlocklistService::default());
+        let lookup = Arc::new(MockLookupService::default());
+        let result = DnsHandler::new(blocklist, lookup).handle(input).await;
+        assert!(result.is_none());
     }
 }
