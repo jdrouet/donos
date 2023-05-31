@@ -1,5 +1,6 @@
 use super::error::HandleError;
 use crate::repository::blocklist::BlocklistService;
+use crate::repository::cache::CacheService;
 use crate::repository::lookup::LookupService;
 use donos_proto::buffer::BytePacketBuffer;
 use donos_proto::packet::header::ResponseCode;
@@ -11,15 +12,21 @@ use std::sync::Arc;
 #[allow(dead_code)]
 pub(crate) struct DnsHandler {
     blocklist: Arc<dyn BlocklistService + Send + Sync>,
+    cache: Arc<dyn CacheService + Send + Sync>,
     lookup: Arc<dyn LookupService + Sync + Send>,
 }
 
 impl DnsHandler {
     pub fn new(
         blocklist: Arc<dyn BlocklistService + Send + Sync>,
+        cache: Arc<dyn CacheService + Send + Sync>,
         lookup: Arc<dyn LookupService + Sync + Send>,
     ) -> Self {
-        Self { blocklist, lookup }
+        Self {
+            blocklist,
+            cache,
+            lookup,
+        }
     }
 }
 
@@ -42,6 +49,15 @@ impl DnsHandler {
             let mut res = DnsPacket::response_from(packet);
             res.header.response_code = ResponseCode::NameError;
             return Ok(res);
+        }
+
+        if let Some(records) = self
+            .cache
+            .request(question.name.as_str(), question.qtype)
+            .await
+            .map_err(HandleError::Cache)?
+        {
+            return Ok(DnsPacket::response_from(packet).with_answers(records));
         }
 
         let response = self
@@ -109,6 +125,7 @@ impl donos_server::Handler for DnsHandler {
 mod tests {
     use super::DnsHandler;
     use crate::repository::blocklist::MockBlocklistService;
+    use crate::repository::cache::MockCacheService;
     use crate::repository::lookup::MockLookupService;
     use donos_proto::buffer::BytePacketBuffer;
     use donos_proto::packet::header::{Header, ResponseCode};
@@ -138,6 +155,7 @@ mod tests {
         };
 
         let blocklist = Arc::new(MockBlocklistService::default());
+        let cache = Arc::new(MockCacheService::default());
         let lookup = Arc::new(
             MockLookupService::default().with_query(
                 "perdu.com",
@@ -155,7 +173,9 @@ mod tests {
                     }),
             ),
         );
-        let result = DnsHandler::new(blocklist, lookup).handle(input).await;
+        let result = DnsHandler::new(blocklist, cache, lookup)
+            .handle(input)
+            .await;
 
         let result = result.expect("should have a message");
         let result = BytePacketBuffer::new(result.buffer);
@@ -178,6 +198,7 @@ mod tests {
         };
 
         let blocklist = Arc::new(MockBlocklistService::default().with_domain("www.facebook.com"));
+        let cache = Arc::new(MockCacheService::default());
         let lookup = Arc::new(
             MockLookupService::default().with_query(
                 "www.facebook.com",
@@ -195,7 +216,9 @@ mod tests {
                     }),
             ),
         );
-        let result = DnsHandler::new(blocklist, lookup).handle(input).await;
+        let result = DnsHandler::new(blocklist, cache, lookup)
+            .handle(input)
+            .await;
 
         let result = result.expect("should have a message");
         let result = BytePacketBuffer::new(result.buffer);
@@ -219,8 +242,49 @@ mod tests {
         };
 
         let blocklist = Arc::new(MockBlocklistService::default());
+        let cache = Arc::new(MockCacheService::default());
         let lookup = Arc::new(MockLookupService::default());
-        let result = DnsHandler::new(blocklist, lookup).handle(input).await;
+        let result = DnsHandler::new(blocklist, cache, lookup)
+            .handle(input)
+            .await;
         assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn should_use_cache() {
+        crate::init_logs();
+
+        let input_packet = DnsPacket::new(Header::question(1))
+            .with_question(Question::new("perdu.com".into(), QueryType::A));
+        let input_buffer = input_packet.create_buffer().unwrap();
+        let input = Message {
+            address: socket_address(),
+            buffer: input_buffer.buf,
+            size: input_buffer.pos,
+        };
+
+        let blocklist = Arc::new(MockBlocklistService::default());
+        let cache = Arc::new(MockCacheService::default().with_records(
+            "perdu.com",
+            QueryType::A,
+            vec![Record::A {
+                domain: "perdu.com".into(),
+                addr: Ipv4Addr::new(10, 0, 0, 1),
+                ttl: 42,
+            }],
+        ));
+        let lookup = Arc::new(MockLookupService::default());
+        let result = DnsHandler::new(blocklist, cache, lookup)
+            .handle(input)
+            .await;
+
+        let result = result.expect("should have a message");
+        let result = BytePacketBuffer::new(result.buffer);
+        let result = DnsPacket::try_from(result).unwrap();
+
+        assert_eq!(result.header.id, 1);
+        assert!(result.header.response);
+        assert_eq!(result.header.response_code, ResponseCode::NoError);
+        assert_eq!(result.answers.len(), 1);
     }
 }

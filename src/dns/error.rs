@@ -6,6 +6,7 @@ use std::fmt::Display;
 #[derive(Debug)]
 pub enum HandleError {
     Blocklist(Box<dyn std::error::Error>),
+    Cache(std::io::Error),
     Lookup(std::io::Error),
     // Database(DatabaseError),
     Writer(WriterError),

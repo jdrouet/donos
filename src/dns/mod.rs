@@ -30,7 +30,12 @@ impl Command {
             .expect("unable to build lookup service");
         // let handler = DnsHandler::new(database, lookup);
         let blocklist_service = crate::repository::blocklist::MockBlocklistService::default();
-        let handler = handler::DnsHandler::new(Arc::new(blocklist_service), Arc::new(lookup));
+        let cache_service = crate::repository::cache::MockCacheService::default();
+        let handler = handler::DnsHandler::new(
+            Arc::new(blocklist_service),
+            Arc::new(cache_service),
+            Arc::new(lookup),
+        );
 
         let address = config.dns.address();
         UdpServer::new(address, handler)
