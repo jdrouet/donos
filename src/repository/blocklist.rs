@@ -19,20 +19,20 @@ pub trait BlocklistService {
 }
 
 #[derive(Debug, Default)]
-pub struct MockBlocklistService {
-    inner: std::collections::HashSet<&'static str>,
+pub struct MemoryBlocklistService {
+    inner: std::collections::HashSet<String>,
 }
 
 #[cfg(test)]
-impl MockBlocklistService {
-    pub fn with_domain(mut self, domain: &'static str) -> Self {
-        self.inner.insert(domain);
+impl MemoryBlocklistService {
+    pub fn with_domain<D: Into<String>>(mut self, domain: D) -> Self {
+        self.inner.insert(domain.into());
         self
     }
 }
 
 #[async_trait::async_trait]
-impl BlocklistService for MockBlocklistService {
+impl BlocklistService for MemoryBlocklistService {
     #[tracing::instrument(skip(self, _origin))]
     async fn is_blocked(&self, _origin: &SocketAddr, domain: &str) -> Result<bool, Box<dyn Error>> {
         tracing::debug!("checking in the blocklist");

@@ -34,7 +34,7 @@ impl Command {
             .await
             .expect("unable to build lookup service");
         // let handler = DnsHandler::new(database, lookup);
-        let blocklist_service = crate::repository::blocklist::MockBlocklistService::default();
+        let blocklist_service = crate::repository::blocklist::MemoryBlocklistService::default();
         let handler = handler::DnsHandler::new(
             Arc::new(blocklist_service),
             Arc::new(cache_service),

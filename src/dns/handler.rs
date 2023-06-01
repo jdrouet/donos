@@ -136,7 +136,7 @@ impl donos_server::Handler for DnsHandler {
 #[cfg(test)]
 mod tests {
     use super::DnsHandler;
-    use crate::repository::blocklist::MockBlocklistService;
+    use crate::repository::blocklist::MemoryBlocklistService;
     use crate::repository::cache::MockCacheService;
     use crate::repository::lookup::MockLookupService;
     use donos_proto::buffer::BytePacketBuffer;
@@ -166,7 +166,7 @@ mod tests {
             size: input_buffer.pos,
         };
 
-        let blocklist = Arc::new(MockBlocklistService::default());
+        let blocklist = Arc::new(MemoryBlocklistService::default());
         let cache = Arc::new(MockCacheService::default());
         let lookup = Arc::new(
             MockLookupService::default().with_query(
@@ -209,7 +209,7 @@ mod tests {
             size: input_buffer.pos,
         };
 
-        let blocklist = Arc::new(MockBlocklistService::default().with_domain("www.facebook.com"));
+        let blocklist = Arc::new(MemoryBlocklistService::default().with_domain("www.facebook.com"));
         let cache = Arc::new(MockCacheService::default());
         let lookup = Arc::new(
             MockLookupService::default().with_query(
@@ -253,7 +253,7 @@ mod tests {
             size: input_buffer.pos,
         };
 
-        let blocklist = Arc::new(MockBlocklistService::default());
+        let blocklist = Arc::new(MemoryBlocklistService::default());
         let cache = Arc::new(MockCacheService::default());
         let lookup = Arc::new(MockLookupService::default());
         let result = DnsHandler::new(blocklist, cache, lookup)
@@ -275,7 +275,7 @@ mod tests {
             size: input_buffer.pos,
         };
 
-        let blocklist = Arc::new(MockBlocklistService::default());
+        let blocklist = Arc::new(MemoryBlocklistService::default());
         let cache = Arc::new(MockCacheService::default().with_records(
             "perdu.com",
             QueryType::A,
