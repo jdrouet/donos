@@ -42,6 +42,64 @@ pub enum Record {
 }
 
 impl Record {
+    pub fn ttl(&self) -> u32 {
+        match self {
+            Self::A { ttl, .. } => *ttl,
+            Self::AAAA { ttl, .. } => *ttl,
+            Self::CNAME { ttl, .. } => *ttl,
+            Self::MX { ttl, .. } => *ttl,
+            Self::NS { ttl, .. } => *ttl,
+            Self::Unknown { ttl, .. } => *ttl,
+        }
+    }
+
+    pub fn delayed_ttl(&self, ttl: u32) -> Self {
+        match self {
+            Self::A { domain, addr, .. } => Self::A {
+                domain: domain.clone(),
+                addr: addr.clone(),
+                ttl,
+            },
+            Self::AAAA { domain, addr, .. } => Self::AAAA {
+                domain: domain.clone(),
+                addr: addr.clone(),
+                ttl,
+            },
+            Self::CNAME { domain, host, .. } => Self::CNAME {
+                domain: domain.clone(),
+                host: host.clone(),
+                ttl,
+            },
+            Self::MX {
+                domain,
+                priority,
+                host,
+                ..
+            } => Self::MX {
+                domain: domain.clone(),
+                priority: *priority,
+                host: host.clone(),
+                ttl,
+            },
+            Self::NS { domain, host, .. } => Self::NS {
+                domain: domain.clone(),
+                host: host.clone(),
+                ttl,
+            },
+            Self::Unknown {
+                domain,
+                qtype,
+                data_len,
+                ..
+            } => Self::Unknown {
+                domain: domain.clone(),
+                qtype: *qtype,
+                data_len: *data_len,
+                ttl,
+            },
+        }
+    }
+
     pub fn read(buffer: &mut BytePacketBuffer) -> Result<Record, ReaderError> {
         // NAME a domain name to which this resource record pertains.
         let domain = buffer.read_qname()?;

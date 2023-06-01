@@ -66,6 +66,18 @@ impl DnsHandler {
             .await
             .map_err(|err| HandleError::Lookup(err))?;
 
+        if let Err(error) = self
+            .cache
+            .persist(
+                question.name.as_str(),
+                question.qtype,
+                response.answers.clone(),
+            )
+            .await
+        {
+            tracing::error!("couldn't persist in cache: {error:?}");
+        }
+
         let res = DnsPacket::response_from(packet).with_answers(response.answers);
 
         Ok(res)

@@ -2,7 +2,8 @@ use donos_proto::packet::record::Record;
 use donos_proto::packet::QueryType;
 use moka::future::Cache;
 use std::io::Result;
-use std::time::SystemTime;
+use std::ops::Add;
+use std::time::{Duration, SystemTime};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
@@ -30,6 +31,7 @@ impl Config {
 
 #[async_trait::async_trait]
 pub trait CacheService {
+    async fn persist(&self, qname: &str, qtype: QueryType, records: Vec<Record>) -> Result<()>;
     async fn request(&self, qname: &str, qtype: QueryType) -> Result<Option<Vec<Record>>>;
 }
 
@@ -47,16 +49,33 @@ impl RemoteCacheService {
 
 #[async_trait::async_trait]
 impl CacheService for RemoteCacheService {
+    #[tracing::instrument(skip(self, records))]
+    async fn persist(&self, qname: &str, qtype: QueryType, records: Vec<Record>) -> Result<()> {
+        if let Some(min_ttl) = records.iter().map(|item| item.ttl()).min() {
+            tracing::debug!("persisting with a ttl of {min_ttl} seconds");
+            let deadline = SystemTime::now().add(Duration::new(min_ttl as u64, 0));
+            self.inner
+                .insert((qname.to_string(), qtype), (deadline, records))
+                .await;
+        }
+        Ok(())
+    }
+
     #[tracing::instrument(skip(self))]
     async fn request(&self, qname: &str, qtype: QueryType) -> Result<Option<Vec<Record>>> {
         let key = (qname.to_string(), qtype);
         if let Some((until, records)) = self.inner.get(&key) {
             let now = SystemTime::now();
-            if now <= until {
-                tracing::debug!("found in cache and valid");
-                Ok(Some(records.clone()))
+            if let Ok(diff) = until.duration_since(now) {
+                tracing::debug!("found in cache with a ttl of {} seconds", diff.as_secs());
+                Ok(Some(
+                    records
+                        .iter()
+                        .map(|record| record.delayed_ttl(diff.as_secs() as u32))
+                        .collect(),
+                ))
             } else {
-                tracing::debug!("found in cache but invalid");
+                tracing::debug!("found in cache but expired");
                 self.inner.invalidate(&key).await;
                 Ok(None)
             }
@@ -89,6 +108,10 @@ impl MockCacheService {
 // #[cfg(test)]
 #[async_trait::async_trait]
 impl CacheService for MockCacheService {
+    async fn persist(&self, _qname: &str, _qtype: QueryType, _records: Vec<Record>) -> Result<()> {
+        Ok(())
+    }
+
     async fn request(&self, qname: &str, qtype: QueryType) -> Result<Option<Vec<Record>>> {
         if let Some(found) = self.inner.get(&(qname, qtype)) {
             Ok(Some(found.clone()))
