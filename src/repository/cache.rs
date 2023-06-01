@@ -86,13 +86,13 @@ impl CacheService for RemoteCacheService {
     }
 }
 
-// #[cfg(test)]
+#[cfg(test)]
 #[derive(Debug, Default)]
 pub struct MockCacheService {
     inner: std::collections::HashMap<(&'static str, QueryType), Vec<Record>>,
 }
 
-// #[cfg(test)]
+#[cfg(test)]
 impl MockCacheService {
     pub fn with_records(
         mut self,
@@ -105,7 +105,7 @@ impl MockCacheService {
     }
 }
 
-// #[cfg(test)]
+#[cfg(test)]
 #[async_trait::async_trait]
 impl CacheService for MockCacheService {
     async fn persist(&self, _qname: &str, _qtype: QueryType, _records: Vec<Record>) -> Result<()> {
