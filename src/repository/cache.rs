@@ -24,8 +24,8 @@ impl Config {
 }
 
 impl Config {
-    pub async fn build(self) -> Result<RemoteCacheService> {
-        RemoteCacheService::new(self).await
+    pub async fn build(self) -> Result<MemoryCacheService> {
+        Ok(MemoryCacheService::new(self.size))
     }
 }
 
@@ -35,20 +35,21 @@ pub trait CacheService {
     async fn request(&self, qname: &str, qtype: QueryType) -> Result<Option<Vec<Record>>>;
 }
 
-pub struct RemoteCacheService {
+pub struct MemoryCacheService {
     inner: Cache<(String, QueryType), (SystemTime, Vec<Record>)>,
 }
 
-impl RemoteCacheService {
-    async fn new(config: Config) -> Result<Self> {
-        Ok(Self {
-            inner: Cache::new(config.size),
-        })
+impl MemoryCacheService {
+    #[inline]
+    fn new(size: u64) -> Self {
+        Self {
+            inner: Cache::new(size),
+        }
     }
 }
 
 #[async_trait::async_trait]
-impl CacheService for RemoteCacheService {
+impl CacheService for MemoryCacheService {
     #[tracing::instrument(skip(self, records))]
     async fn persist(&self, qname: &str, qtype: QueryType, records: Vec<Record>) -> Result<()> {
         if let Some(min_ttl) = records.iter().map(|item| item.ttl()).min() {
@@ -117,6 +118,87 @@ impl CacheService for MockCacheService {
             Ok(Some(found.clone()))
         } else {
             Ok(None)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        net::Ipv4Addr,
+        ops::{Add, Sub},
+        time::{Duration, SystemTime},
+    };
+
+    use super::{CacheService, MemoryCacheService};
+    use donos_proto::packet::{record::Record, QueryType};
+
+    #[tokio::test]
+    async fn should_persist_in_cache() {
+        let srv = MemoryCacheService::new(10);
+        srv.persist(
+            "perdu.com",
+            QueryType::A,
+            vec![Record::A {
+                domain: "perdu.com".into(),
+                addr: Ipv4Addr::new(1, 2, 3, 4),
+                ttl: 60,
+            }],
+        )
+        .await
+        .unwrap();
+        let found = srv.inner.get(&("perdu.com".to_string(), QueryType::A));
+        assert!(found.is_some());
+    }
+
+    #[tokio::test]
+    async fn should_not_return_if_outdated() {
+        let srv = MemoryCacheService::new(10);
+        srv.inner
+            .insert(
+                ("perdu.com".to_string(), QueryType::A),
+                (
+                    SystemTime::now().sub(Duration::new(10, 0)),
+                    vec![Record::A {
+                        domain: "perdu.com".into(),
+                        addr: Ipv4Addr::new(1, 2, 3, 4),
+                        ttl: 5,
+                    }],
+                ),
+            )
+            .await;
+        let found = srv.request("perdu.com", QueryType::A).await.unwrap();
+        assert!(found.is_none());
+        // should flush
+        assert!(srv
+            .inner
+            .get(&("perdu.com".to_string(), QueryType::A))
+            .is_none());
+    }
+
+    #[tokio::test]
+    async fn should_return() {
+        let srv = MemoryCacheService::new(10);
+        srv.inner
+            .insert(
+                ("perdu.com".to_string(), QueryType::A),
+                (
+                    SystemTime::now().add(Duration::new(60, 0)),
+                    vec![Record::A {
+                        domain: "perdu.com".into(),
+                        addr: Ipv4Addr::new(1, 2, 3, 4),
+                        ttl: 180,
+                    }],
+                ),
+            )
+            .await;
+        let found = srv
+            .request("perdu.com", QueryType::A)
+            .await
+            .unwrap()
+            .unwrap();
+        for item in found {
+            assert_eq!(item.ttl(), 59);
         }
     }
 }
