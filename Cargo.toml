@@ -30,6 +30,7 @@ async-trait = { version = "0.1" }
 clap = { version = "4.2", features = ["derive", "env"] }
 config = { version = "0.13", default-features = false, features = ["toml"] }
 futures = { version = "0.3" }
+moka = { version = "0.11", features = ["future"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 sqlx = { version = "0.6", default-features = false, features = [
     "migrate",

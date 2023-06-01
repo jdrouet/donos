@@ -1,9 +1,26 @@
 use donos_proto::packet::record::Record;
 use donos_proto::packet::QueryType;
+use moka::future::Cache;
 use std::io::Result;
+use std::time::SystemTime;
 
-#[derive(Debug, Default, serde::Deserialize)]
-pub struct Config {}
+#[derive(Debug, serde::Deserialize)]
+pub struct Config {
+    #[serde(default = "Config::default_size")]
+    size: u64,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self { size: 1000 }
+    }
+}
+
+impl Config {
+    pub fn default_size() -> u64 {
+        1000
+    }
+}
 
 impl Config {
     pub async fn build(self) -> Result<RemoteCacheService> {
@@ -16,11 +33,15 @@ pub trait CacheService {
     async fn request(&self, qname: &str, qtype: QueryType) -> Result<Option<Vec<Record>>>;
 }
 
-pub struct RemoteCacheService {}
+pub struct RemoteCacheService {
+    inner: Cache<(String, QueryType), (SystemTime, Vec<Record>)>,
+}
 
 impl RemoteCacheService {
-    async fn new(_config: Config) -> Result<Self> {
-        Ok(Self {})
+    async fn new(config: Config) -> Result<Self> {
+        Ok(Self {
+            inner: Cache::new(config.size),
+        })
     }
 }
 
@@ -28,7 +49,21 @@ impl RemoteCacheService {
 impl CacheService for RemoteCacheService {
     #[tracing::instrument(skip(self))]
     async fn request(&self, qname: &str, qtype: QueryType) -> Result<Option<Vec<Record>>> {
-        Ok(None)
+        let key = (qname.to_string(), qtype);
+        if let Some((until, records)) = self.inner.get(&key) {
+            let now = SystemTime::now();
+            if now <= until {
+                tracing::debug!("found in cache and valid");
+                Ok(Some(records.clone()))
+            } else {
+                tracing::debug!("found in cache but invalid");
+                self.inner.invalidate(&key).await;
+                Ok(None)
+            }
+        } else {
+            tracing::debug!("not found in cache");
+            Ok(None)
+        }
     }
 }
 

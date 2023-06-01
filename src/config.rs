@@ -5,6 +5,8 @@ pub struct Config {
     // #[serde(default)]
     // pub database: crate::service::database::Config,
     #[serde(default)]
+    pub cache: crate::repository::cache::Config,
+    #[serde(default)]
     pub lookup: crate::repository::lookup::Config,
     #[serde(default)]
     pub blocklists: crate::repository::blocklist::Config,
