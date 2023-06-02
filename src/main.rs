@@ -1,9 +1,7 @@
 mod common;
 mod dns;
 
-// mod cmd;
 mod config;
-// mod model;
 mod repository;
 mod service;
 
