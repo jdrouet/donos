@@ -1,7 +1,7 @@
-use std::{path::PathBuf, str::FromStr};
+use std::str::FromStr;
 
 pub type Pool = sqlx::sqlite::SqlitePool;
-pub type Transaction<'t> = sqlx::Transaction<'t, sqlx::Sqlite>;
+// pub type Transaction<'t> = sqlx::Transaction<'t, sqlx::Sqlite>;
 pub type Error = sqlx::Error;
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
@@ -16,7 +16,6 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             url: Self::default_url(),
-            migrations: Self::default_migrations(),
         }
     }
 }

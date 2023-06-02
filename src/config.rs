@@ -2,8 +2,8 @@ use std::path::Path;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
-    // #[serde(default)]
-    // pub database: crate::service::database::Config,
+    #[serde(default)]
+    pub database: crate::service::database::Config,
     #[serde(default)]
     pub cache: crate::repository::cache::Config,
     #[serde(default)]
