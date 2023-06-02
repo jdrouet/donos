@@ -44,10 +44,8 @@ impl Config {
     }
 }
 
-impl Config {
-    pub async fn migrate(&self, pool: &Pool) -> Result<(), Error> {
-        tracing::debug!("running migrations");
-        MIGRATOR.run(pool).await?;
-        Ok(())
-    }
+pub async fn migrate(pool: &Pool) -> Result<(), Error> {
+    tracing::debug!("running migrations");
+    MIGRATOR.run(pool).await?;
+    Ok(())
 }

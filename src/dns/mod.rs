@@ -18,9 +18,7 @@ impl Command {
             .build()
             .await
             .expect("unable to connect database");
-        config
-            .database
-            .migrate(&database)
+        crate::service::database::migrate(&database)
             .await
             .expect("unable to run database migration");
 

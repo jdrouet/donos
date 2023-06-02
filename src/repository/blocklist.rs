@@ -72,3 +72,41 @@ impl BlocklistService for MemoryBlocklistService {
         Ok(self.inner.contains(domain))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::repository::blocklist::BlocklistService;
+    use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+
+    fn address() -> SocketAddr {
+        SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(1, 2, 3, 4), 56))
+    }
+
+    #[tokio::test]
+    async fn database_service_should_block() {
+        crate::init_logs();
+
+        let database = crate::service::database::Config::test_env()
+            .build()
+            .await
+            .unwrap();
+        crate::service::database::migrate(&database).await.unwrap();
+
+        let _: u32 = sqlx::query_scalar(
+            "insert into blocked_domains (domain, created_at) values (?, UNIXEPOCH()) returning id",
+        )
+        .bind("facebook.com")
+        .fetch_one(&database)
+        .await
+        .unwrap();
+
+        let addr = address();
+
+        let service = super::DatabaseBlocklistService::new(database);
+
+        let is_blocked = service.is_blocked(&addr, "facebook.com").await.unwrap();
+        assert!(is_blocked);
+        let is_blocked = service.is_blocked(&addr, "perdu.com").await.unwrap();
+        assert!(!is_blocked);
+    }
+}
