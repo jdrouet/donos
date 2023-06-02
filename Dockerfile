@@ -33,6 +33,7 @@ COPY donos-parser/fuzz /code/donos-parser/fuzz
 COPY donos-parser/src /code/donos-parser/src
 COPY donos-parser/Cargo.toml /code/donos-parser/Cargo.toml
 
+COPY migrations /code/migrations
 COPY src /code/src
 COPY Cargo.lock Cargo.toml /code/
 
@@ -49,12 +50,10 @@ RUN --mount=type=cache,target=/code/target/release/.fingerprint,sharing=private 
 FROM alpine
 
 ENV CONFIG_PATH=/etc/donos/donos.toml
-ENV DATABASE_MIGRATIONS=/etc/donos/migrations
 ENV DATABASE_URL=/etc/donos/database.db
 ENV DNS_HOST=0.0.0.0
 ENV DNS_PORT=53
 
-COPY migrations /etc/donos/migrations
 COPY donos.toml /etc/donos/donos.toml
 COPY --from=builder /code/target/release/donos /usr/bin/donos
 

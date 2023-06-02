@@ -4,12 +4,12 @@ pub type Pool = sqlx::sqlite::SqlitePool;
 pub type Transaction<'t> = sqlx::Transaction<'t, sqlx::Sqlite>;
 pub type Error = sqlx::Error;
 
+static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
+
 #[derive(Debug, serde::Deserialize)]
 pub struct Config {
     #[serde(default = "Config::default_url")]
     url: String,
-    #[serde(default = "Config::default_migrations")]
-    migrations: PathBuf,
 }
 
 impl Default for Config {
@@ -25,10 +25,6 @@ impl Config {
     fn default_url() -> String {
         "/etc/donos/database.db".to_string()
     }
-
-    fn default_migrations() -> PathBuf {
-        PathBuf::from("/etc/donos/migrations")
-    }
 }
 
 impl Config {
@@ -36,7 +32,6 @@ impl Config {
     pub fn test_env() -> Self {
         Self {
             url: String::from(":memory:"),
-            migrations: PathBuf::from("./migrations"),
         }
     }
 
@@ -53,8 +48,7 @@ impl Config {
 impl Config {
     pub async fn migrate(&self, pool: &Pool) -> Result<(), Error> {
         tracing::debug!("running migrations");
-        let migrator = sqlx::migrate::Migrator::new(self.migrations.as_path()).await?;
-        migrator.run(pool).await?;
+        MIGRATOR.run(pool).await?;
         Ok(())
     }
 }
