@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn should_read_qname_with_redirect() {
-        println!("{}", 0xC2 ^ 0x00);
+        println!("{}", 0xC2);
         let mut buffer = crate::buffer::BytePacketBuffer::default();
         buffer.buf[0] = 1;
         buffer.buf[1] = b'b';

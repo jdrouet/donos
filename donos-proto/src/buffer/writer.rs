@@ -83,7 +83,7 @@ impl BytePacketBuffer {
         if len > 0x3f {
             return Err(WriterError::SingleLabelLengh);
         }
-        self.write_u8(len as u8)?;
+        self.write_u8(len)?;
         for b in label.as_bytes() {
             self.write_u8(*b)?;
         }

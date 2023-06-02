@@ -57,12 +57,12 @@ impl Record {
         match self {
             Self::A { domain, addr, .. } => Self::A {
                 domain: domain.clone(),
-                addr: addr.clone(),
+                addr: *addr,
                 ttl,
             },
             Self::AAAA { domain, addr, .. } => Self::AAAA {
                 domain: domain.clone(),
-                addr: addr.clone(),
+                addr: *addr,
                 ttl,
             },
             Self::CNAME { domain, host, .. } => Self::CNAME {

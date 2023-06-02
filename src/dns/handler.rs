@@ -64,7 +64,7 @@ impl DnsHandler {
             .lookup
             .lookup(question.name.as_str(), question.qtype)
             .await
-            .map_err(|err| HandleError::Lookup(err))?;
+            .map_err(HandleError::Lookup)?;
 
         if let Err(error) = self
             .cache

@@ -28,7 +28,7 @@ async fn exchange_and_save(name: &str, packet: DnsPacket, port: u16) {
     let (size, response) = exchange(&buffer.buf[0..buffer.pos], port).await.unwrap();
 
     let fname = format!("assets/{name}_response.bin");
-    std::fs::write(&fname, &response.buf[0..size]).unwrap();
+    std::fs::write(fname, &response.buf[0..size]).unwrap();
 
     let packet = DnsPacket::try_from(response).unwrap();
 

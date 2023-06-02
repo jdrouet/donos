@@ -16,7 +16,7 @@ fn prepare(packet: &[u8]) -> DnsPacket {
     DnsPacket::try_from(buffer).unwrap()
 }
 
-fn encoding(mut packet: DnsPacket) {
+fn encoding(packet: DnsPacket) {
     let _buffer = packet.create_buffer().unwrap();
 }
 
