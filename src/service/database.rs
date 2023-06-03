@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 pub type Pool = sqlx::sqlite::SqlitePool;
-// pub type Transaction<'t> = sqlx::Transaction<'t, sqlx::Sqlite>;
+pub type Transaction<'t> = sqlx::Transaction<'t, sqlx::Sqlite>;
 pub type Error = sqlx::Error;
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
