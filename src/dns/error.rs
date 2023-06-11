@@ -1,6 +1,6 @@
 // use crate::service::database::Error as DatabaseError;
-use donos_proto::buffer::reader::ReaderError;
-use donos_proto::buffer::writer::WriterError;
+use donos_parser::buffer::reader::ReaderError;
+use donos_parser::buffer::writer::WriterError;
 use std::fmt::Display;
 
 #[derive(Debug)]

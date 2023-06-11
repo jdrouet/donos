@@ -1,6 +1,6 @@
-use donos_proto::buffer::BytePacketBuffer;
-use donos_proto::packet::question::Question;
-use donos_proto::packet::{DnsPacket, QueryType};
+use donos_parser::buffer::BytePacketBuffer;
+use donos_parser::packet::question::Question;
+use donos_parser::packet::{DnsPacket, QueryType};
 use std::io::Result;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::sync::atomic::{AtomicU16, Ordering};

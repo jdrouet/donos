@@ -12,7 +12,7 @@ keywords = ["dns"]
 [workspace]
 members = [
     "./donos-blocklist-loader",
-    "./donos-proto",
+    "./donos-parser",
     "./donos-resolver",
     "./donos-server",
 ]
@@ -23,7 +23,7 @@ generate = []
 
 [dependencies]
 donos-blocklist-loader = { path = "./donos-blocklist-loader" }
-donos-proto = { path = "./donos-proto" }
+donos-parser = { path = "./donos-parser" }
 donos-server = { path = "./donos-server" }
 
 async-trait = { version = "0.1" }

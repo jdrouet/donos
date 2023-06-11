@@ -570,7 +570,7 @@ dependencies = [
  "clap 4.3.0",
  "config",
  "donos-blocklist-loader",
- "donos-proto",
+ "donos-parser",
  "donos-server",
  "futures",
  "moka",
@@ -594,7 +594,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "donos-proto"
+name = "donos-parser"
 version = "0.1.0"
 dependencies = [
  "arbitrary",
@@ -606,7 +606,7 @@ name = "donos-resolver"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "donos-proto",
+ "donos-parser",
  "tokio",
 ]
 

@@ -2,7 +2,7 @@
 pub mod mock;
 pub mod prelude;
 
-use donos_proto::packet::{DnsPacket, QueryType};
+use donos_parser::packet::{DnsPacket, QueryType};
 
 #[derive(Clone, Debug)]
 pub enum ManagerBuilderError {

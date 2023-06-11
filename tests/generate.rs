@@ -1,6 +1,6 @@
-use donos_proto::buffer::BytePacketBuffer;
-use donos_proto::packet::question::Question;
-use donos_proto::packet::{DnsPacket, QueryType};
+use donos_parser::buffer::BytePacketBuffer;
+use donos_parser::packet::question::Question;
+use donos_parser::packet::{DnsPacket, QueryType};
 use tokio::net::UdpSocket;
 
 async fn exchange(buffer: &[u8], port: u16) -> Option<(usize, BytePacketBuffer)> {

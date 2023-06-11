@@ -1,5 +1,5 @@
-use donos_proto::packet::record::Record;
-use donos_proto::packet::QueryType;
+use donos_parser::packet::record::Record;
+use donos_parser::packet::QueryType;
 use moka::future::Cache;
 use std::io::Result;
 use std::ops::Add;
@@ -131,7 +131,7 @@ mod tests {
     };
 
     use super::{CacheService, MemoryCacheService};
-    use donos_proto::packet::{record::Record, QueryType};
+    use donos_parser::packet::{record::Record, QueryType};
 
     #[tokio::test]
     async fn should_persist_in_cache() {

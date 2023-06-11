@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use donos_proto::{buffer::BytePacketBuffer, packet::DnsPacket};
+use donos_parser::{buffer::BytePacketBuffer, packet::DnsPacket};
 
 const QUERY_PACKET: &[u8] = include_bytes!("../data/googlecom_query.bin");
 const RESPONSE_PACKET: &[u8] = include_bytes!("../data/googlecom_response.bin");

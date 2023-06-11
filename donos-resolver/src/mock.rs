@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::prelude::{Resolver, ResolverError};
-use donos_proto::packet::{DnsPacket, QueryType};
+use donos_parser::packet::{DnsPacket, QueryType};
 
 #[derive(Debug)]
 pub struct MockResolver {

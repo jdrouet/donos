@@ -10,7 +10,7 @@ default = ["mock"]
 mock = []
 
 [dependencies]
-donos-proto = { path = "../donos-proto" }
+donos-parser = { path = "../donos-parser" }
 
 async-trait = { version = "0.1" }
 
